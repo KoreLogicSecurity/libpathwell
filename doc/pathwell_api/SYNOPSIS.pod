@@ -1,0 +1,219 @@
+
+=head1 SYNOPSIS
+
+#include <pathwell.h>
+
+=head1 PwD (PathWell Datastore Macros)
+
+int PwDSetError(PW_D_CONTEXT *psPwDContext, const char *pcFormat, ...);
+
+=head1 PwD (PathWell Datastore Routines)
+
+int PwDAcquireConnection(PW_D_CONTEXT *psPwDContext);
+
+int PwDBindLibraryResources(PW_D_CONTEXT *psPwDContext, int iForce);
+
+void PwDClearError(PW_D_CONTEXT *psPwDContext);
+
+int PwDClearUseCount(PW_D_CONTEXT *psPwDContext, PW_T_CONTEXT *psPwTContext);
+
+int PwDContextIsValid(PW_D_CONTEXT *psPwDContext);
+
+int PwDCreateSchema(PW_D_CONTEXT *psPwDContext);
+
+int PwDCreateTable(PW_D_CONTEXT *psPwDContext, const char *pcName);
+
+int PwDCreateTables(PW_D_CONTEXT *psPwDContext);
+
+int PwDCreateTrigger(PW_D_CONTEXT *psPwDContext, const char *pcName);
+
+int PwDCreateTriggers(PW_D_CONTEXT *psPwDContext);
+
+int PwDDbDirectoryExists(char *pcDbDirectory);
+
+int PwDDbFileExists(char *pcDbFile);
+
+int PwDDecrementUseCount(PW_D_CONTEXT *psPwDContext, PW_T_CONTEXT *psPwTContext);
+
+int PwDDeleteSchema(PW_D_CONTEXT *psPwDContext);
+
+int PwDDeleteTable(PW_D_CONTEXT *psPwDContext, const char *pcName);
+
+int PwDDeleteTables(PW_D_CONTEXT *psPwDContext);
+
+int PwDDeleteTrigger(PW_D_CONTEXT *psPwDContext, const char *pcName);
+
+int PwDDeleteTriggers(PW_D_CONTEXT *psPwDContext);
+
+void PwDFreeContext(PW_D_CONTEXT *psPwDContext);
+
+int PwDFreeLibraryResources(PW_D_CONTEXT *psPwDContext, int iForce);
+
+const char *PwDGetError(PW_D_CONTEXT *psPwDContext);
+
+int *PwDGetSchemaVersion(PW_D_CONTEXT *psPwDContext);
+
+unsigned int *PwDGetUseCount(PW_D_CONTEXT *psPwDContext, PW_T_CONTEXT *psPwTContext);
+
+int PwDIncrementUseCount(PW_D_CONTEXT *psPwDContext, PW_T_CONTEXT *psPwTContext);
+
+int PwDInitializeDatabase(PW_D_CONTEXT *psPwDContext);
+
+int PwDLoadBlacklistedTopologies(PW_D_CONTEXT *psPwDContext, char *pcFile);
+
+PW_D_CONTEXT *PwDNewContextFromParameters(char *pcDbFile, int iDbFileFlags, char *pcDbLock, int iDbLockFlags);
+
+int PwDReleaseConnection(PW_D_CONTEXT *psPwDContext);
+
+int PwDSetSchemaVersion(PW_D_CONTEXT *psPwDContext, int iVersion, int iForce);
+
+int PwDSetUseCount(PW_D_CONTEXT *psPwDContext, PW_T_CONTEXT *psPwTContext, unsigned int uiUseCount);
+
+int PwDTopologyIsBlacklisted(PW_D_CONTEXT *psPwDContext, char *pcTopology);
+
+int PwDTopologyIsInUse(PW_D_CONTEXT *psPwDContext, PW_T_CONTEXT *psPwTContext);
+
+int PwDVerifySchema(PW_D_CONTEXT *psPwDContext);
+
+=head1 PwE (PathWell Error Routines)
+
+int PwESetError(PW_E_CONTEXT *psPwEContext, const char *pcFormat, ...);
+
+=head1 PwL (PathWell Lev Macros)
+
+int PwLSetError(PW_L_CONTEXT *psPwLContext, const char *pcFormat, ...);
+
+=head1 PwL (PathWell Lev Routines)
+
+int PwLCalcLevDistance(PW_L_CONTEXT *psPwLContext);
+
+int PwLCheckLevDistance(PW_L_CONTEXT *psPwLContext, int iMinDist);
+
+void PwLClearError(PW_L_CONTEXT *psPwLContext);
+
+int PwLContextIsValid(PW_L_CONTEXT *psPwLContext);
+
+void PwLFreeContext(PW_L_CONTEXT *psPwLContext);
+
+const char *PwLGetError(PW_L_CONTEXT *psPwLContext);
+
+PW_T_CONTEXT *PwLGetPwTContext(PW_L_CONTEXT *psPwLContext, char cMember);
+
+PW_T_CONTEXT *PwLGetPwTContextA(PW_L_CONTEXT *psPwLContext);
+
+PW_T_CONTEXT *PwLGetPwTContextB(PW_L_CONTEXT *psPwLContext);
+
+PW_L_CONTEXT *PwLNewContextFromParameters(PW_T_CONTEXT *psPwTContextA, PW_T_CONTEXT *psPwTContextB);
+
+int PwLSetPwTContext(PW_L_CONTEXT *psPwLContext, PW_T_CONTEXT *psPwTContext, char cMember);
+
+int PwLSetPwTContextA(PW_L_CONTEXT *psPwLContext, PW_T_CONTEXT *psPwTContext);
+
+int PwLSetPwTContextB(PW_L_CONTEXT *psPwLContext, PW_T_CONTEXT *psPwTContext);
+
+=head1 PwS (PathWell Support Macros)
+
+int PwSMin2(int iValueA, int iValueB);
+
+int PwSMin3(int iValueA, int iValueB, int iValueC);
+
+=head1 PwS (PathWell Support Routines)
+
+int PwSBaseNTo63Bit(char *pcValue, int64_t *pi64Value, int iBase);
+
+char *PwSChomp(char *pcString, char *pcChompSet, int iMode);
+
+int PwSCreateDirectory(char *pcPath, mode_t tMode);
+
+char *PwSDirname(char *pcPath);
+
+int PwSLevenshteinDistance(char *pcStringA, char *pcStringB);
+
+=head1 PwT (PathWell Topology Macros)
+
+int PwTSetError(PW_T_CONTEXT *psPwTContext, const char *pcFormat, ...);
+
+=head1 PwT (PathWell Topology Routines)
+
+int PwTBaseNp1IdToTopology(PW_T_CONTEXT *psPwTContext);
+
+int PwTBitmaskIdToTopology(PW_T_CONTEXT *psPwTContext);
+
+void PwTClearError(PW_T_CONTEXT *psPwTContext);
+
+int PwTContextIsValid(PW_T_CONTEXT *psPwTContext);
+
+void PwTFreeContext(PW_T_CONTEXT *psPwTContext);
+
+int PwTGetEncoding(PW_T_CONTEXT *psPwTContext);
+
+const char *PwTGetError(PW_T_CONTEXT *psPwTContext);
+
+int64_t PwTGetId(PW_T_CONTEXT *psPwTContext);
+
+const char *PwTGetPassword(PW_T_CONTEXT *psPwTContext);
+
+int PwTGetTokenSet(PW_T_CONTEXT *psPwTContext);
+
+char *PwTGetTokenSetTokens(PW_T_CONTEXT *psPwTContext);
+
+const char *PwTGetTopology(PW_T_CONTEXT *psPwTContext);
+
+int PwTIdToTopology(PW_T_CONTEXT *psPwTContext);
+
+int PwTIsPasswordInTokenSet(PW_T_CONTEXT *psPwTContext);
+
+PW_T_CONTEXT *PwTNewContext(void);
+
+PW_T_CONTEXT *PwTNewContextFromParameters(int iEncoding, int iTokenSet, char *pcPassword, char *pcTopology, int64_t *pi64Id);
+
+int PwTPasswordToTopology(PW_T_CONTEXT *psPwTContext);
+
+int PwTSetEncoding(PW_T_CONTEXT *psPwTContext, int iEncoding);
+
+int PwTSetId(PW_T_CONTEXT *psPwTContext, int64_t i64Id);
+
+int PwTSetIdFromString(PW_T_CONTEXT *psPwTContext, char *pcId);
+
+int PwTSetPassword(PW_T_CONTEXT *psPwTContext, char *pcPassword);
+
+int PwTSetTokenSet(PW_T_CONTEXT *psPwTContext, int iTokenSet);
+
+int PwTSetTopology(PW_T_CONTEXT *psPwTContext, char *pcTopology);
+
+int PwTTopologyToBaseNp1Id(PW_T_CONTEXT *psPwTContext);
+
+int PwTTopologyToBitmaskId(PW_T_CONTEXT *psPwTContext);
+
+int PwTTopologyToId(PW_T_CONTEXT *psPwTContext);
+
+int PwTVerifyTopologyString(PW_T_CONTEXT *psPwTContext);
+
+=head1 PwV (PathWell Version Routines)
+
+int PwVGetLibraryAge(void);
+
+int PwVGetLibraryCurrent(void);
+
+int PwVGetLibraryRevision(void);
+
+const char *PwVGetLibraryVersion(void);
+
+int PwVGetModuleAge(void);
+
+int PwVGetModuleCurrent(void);
+
+int PwVGetModuleRevision(void);
+
+const char *PwVGetModuleVersion(void);
+
+int PwVGetReleaseMajor(void);
+
+int PwVGetReleaseMinor(void);
+
+uint32_t PwVGetReleaseNumber(void);
+
+int PwVGetReleasePatch(void);
+
+const char *PwVGetReleaseString(void);
+

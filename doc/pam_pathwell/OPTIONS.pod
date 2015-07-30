@@ -1,0 +1,67 @@
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<blacklist>
+
+Specifies that new passwords having a blacklisted topology are to
+be rejected.
+
+=item B<db=path/name>
+
+Specifies the path to and name of the database used by the
+module.  The default value is '/var/lib/PathWell/PathWell.db'.
+
+=item B<debug>
+
+Specifies that the topology of a user's new password, when accepted,
+will be included in a syslog message. *Note* this type of information
+should be considered highly sensitive, as it would permit targeted
+cracking of users' passwords should the system logs become accessible
+to an attacker.  As such, use of the 'debug' flag should be restricted
+to test environments and/or test purposes only.  In particular, use of
+this flag in any production environment is highly discouraged.
+
+=item B<encoding={baseN+1|bitmask}>
+
+Specifies the type of encoding to use while performing conversions.
+Currently, the following encoding types are supported: 'baseN+1' and
+'bitmask'.  The default value is 'baseN+1'.
+
+=item B<maxuse=int>
+
+Specifies maximum use count that any given topology may have.  A value
+of '0' means that no limit is imposed.  The default value is '1'.
+
+=item B<minlen=int>
+
+Specifies minimum required password length.  The default value is
+'0', which means that no limit is imposed.
+
+=item B<minlev=int>
+
+Specifies minimum required Lev distance between the old and new
+topologies.  The default value is '0', which means that no limit
+is imposed.
+
+=item B<tokenset={1|2|3|4}>
+
+Specifies the ID (see below) of the token set to use while performing
+conversions.  The default value is '1'.
+
+    1 - ?d, ?l, ?u, ?s
+    2 - ?d, ?l, ?u, ?s, ?f
+    3 - ?d, ?l, ?u, ?s, ?f, ?x
+    4 - ?d, ?l, ?u, ?s, ?f, ?x, ?H
+
+=item B<use_authtok>
+
+Specifies that this module is expecting the new password to have
+already been defined by a previously stacked password module.  If this
+option is set and the new password has not been defined, the module
+will abort.  If this option is not set and the the new password has
+not been defined, the module will prompt the user to supply one.
+
+=back
+

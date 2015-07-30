@@ -1,0 +1,58 @@
+
+=head1 RETURN VALUES
+
+Upon successful completion, PAM_SUCCESS is returned to the calling
+stack, and a message will be syslogged indicating success.  Otherwise, pam_pathwell may return one of the following errors
+directly:
+
+=over 5
+
+=item *
+
+B<PAM_AUTHTOK_ERR>
+
+=item *
+
+B<PAM_AUTHTOK_RECOVERY_ERR>
+
+=item *
+
+B<PAM_IGNORE>
+
+=item *
+
+B<PAM_SERVICE_ERR>
+
+=item *
+
+B<PAM_USER_UNKNOWN>
+
+=back
+
+Consult the PAM documentation for the meaning of those return values.
+
+Other PAM_* error codes may be returned as propagated errors from
+PAM library calls, such as pam_get_item(), pam_get_authtok_verify(), etc.
+Consult the PAM documentation for more details.
+
+Errors encountered by pam_pathwell.so will cause a message to be
+syslogged.  Most of those error messages are self-explanitory,
+indicating the specific enforcement check that failed, etc.  However,
+the meaning of this message in particular may not be obvious:
+
+B<The new password must be defined by a previously stacked module when the "use_authtok" option is enabled.>
+
+This indicates that pam_pathwell.so was configured in pam.d settings
+to expect to be provided the user's new password by an earlier module
+in the PAM stack, but the auth token was not provided.
+
+If this message occurs for every password change, it may indicate a
+pam.d configuration error.
+
+However, this can also be be a normal result when a user has provided
+a new password that is too weak to be accepted by the module(s) before
+pam_pathwell.so.  Other modules such as pam_cracklib.so or pam_unix.so
+may, if called before pam_pathwell.so, have rejected the requested new
+password, in which case they may clear the authentication token before
+pam_pathwell.so is invoked.
+

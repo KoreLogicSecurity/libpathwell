@@ -1,0 +1,18 @@
+
+=head1 EXAMPLES
+
+=head2 Example 1. BaseN+1 mode (default), charsets ?d, ?l, ?u, ?s (default)
+
+    $ pathwell-topology2id '?u?l?l?d?s'
+    Topology='?u?l?l?d?s'; ID='2184';
+
+=head2 Example 2. Bitmask mode, charsets ?d, ?l, ?u, ?s
+
+    $ pathwell-topology2id -t bitmask '?u?l?l?d?s'
+    Topology='?u?l?l?d?s'; ID='38483';
+
+=head2 Example 3. Bitmask mode, charsets ?d, ?l, ?u, ?s, ?f, ?x, STDIN
+
+    $ echo '?u?f?l?d?x' | pathwell-topology2id -t bitmask -s 3 -f -
+    Topology='?u?f?l?d?x'; ID='1222725';
+

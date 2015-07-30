@@ -1,0 +1,8 @@
+
+=head1 DESCRIPTION
+
+This utility reads one or more topology strings from the command line
+and/or a user-specified file (B<-f>), converts them to topology IDs
+using the default or user-specified token set (B<-s>) and encoding
+(B<-t>), and writes the resultant values to stdout.
+

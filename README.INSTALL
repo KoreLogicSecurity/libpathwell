@@ -1,0 +1,153 @@
+
+REVISION
+
+  $Id: README.INSTALL,v 1.26.2.2 2015/07/29 19:43:56 hlein Exp $
+
+OVERVIEW
+
+  PathWell (Password Topology Histogram Wear-Leveling) is a new
+  approach to measuring and enforcing password complexity, focusing on
+  the uniqueness of each user password's topology.
+
+  A password's "topology" is its "shape", such as "Uppercase letter,
+  followed by several lowercase letters, several numbers, and then a
+  special character".  When many users are required to create
+  passwords fitting some conventional strength rules (such as minimum
+  length or minimum number of character sets), they tend to gravitate
+  towards common topologies.  Password cracking tools incorporate this
+  (called "masks" in oclHashcat, for example).  A set of password
+  hashes with a slow (difficult) cipher, or a set of very long
+  (14-character or more) passwords may be infeasible to blindly crack,
+  but by focusing on only 1-5 most popular topologies, an attacker
+  might crack 5-10% or more of an enterprise's user passwords in hours
+  or days instead of years of effort.
+
+  Password crackers would have a far lower success rate if topologies
+  could not be reused by multiple users.  PathWell provides tools to
+  measure the bias in a user population (how overused the most popular
+  topologies are), allow an administrator to disallow the most
+  universally common topologies (blacklists), and/or disallow any user
+  from re-using a topology that is in use by other users of the same
+  system (wear-level enforcement).
+
+REQUIREMENTS
+
+  To build, test, and install the software associated with this
+  project, you will need:
+
+    Autoconf (2.63 or higher)
+    GCC (4.7.2 or higher; other compilers may work but are untested)
+    GMP (5.0.2 or higher)
+    GNU Make (any recent version)
+    PCRE (8.12 or higher)
+    SQLite (3.7.9 or higher)
+    TAP (1.03; only needed if you intend to run 'make check')
+
+  Gentoo Linux is the only officially supported platform for this
+  release of PathWell.  However, recent versions of Debian, Fedora,
+  and Ubuntu have also been tested and seen to work; version details
+  are below.
+
+  While other Linux distributions and/or UNIX-like operating systems
+  that support PAM (Pluggable Authentication Modules) with a
+  compatible API will likely work, they have not been tested.  For this
+  reason, we recommend that you build, test, and install the software
+  on a supported Linux distribution that meets or exceeds the version
+  dependencies.
+
+  Note: As of this writing (2013-09), the current releases of RHEL and
+  CentOS do not provide a recent enough version GMP to be compatible
+  with PathWell.  Although an administrator could perhaps install a
+  newer GMP release by hand, that is not supported, and its impact to
+  other software on an RHEL or CentOS server is undefined.
+
+PREREQUISITES INSTALLATION
+
+  Debian (7.2) x64
+
+    build-essential (11.5)
+    libgmp-dev (2:5.0.5+dfsg-2)
+    libpam0g-dev (1.1.3-7.1)
+    libpcre3-dev (1:8.30-5)
+    libsqlite3-dev (3.7.13-1+deb7u1)
+    sqlite3 (3.7.13-1+deb7u1)
+
+  Fedora (19) x64
+
+    Development Tools (groupinstall)
+    automake (1.13.4)
+    gmp-devel (5.1.1)
+    pam-devel (1.1.6)
+    pcre-devel (8.32)
+    perl-pod-minimumversion (50)
+    sqlite-devel (3.8.0.2)
+    perl-Test-use-ok (0.11) - if TAP tests are desired
+
+  Gentoo (2.2) x64
+
+    Gentoo profile default/linux/amd64/13.0
+    dev-db/sqlite (3.7.9)
+    dev-libs/gmp (5.0.2)
+    dev-libs/libpcre (8.12)
+
+  Ubuntu (12.04) x64
+
+    build-essential (11.5ubuntu2.1)
+    libgmp-dev (2:5.0.2+dfsg-2ubuntu1)
+    libpcre3-dev (8.12-4)
+    libsqlite3-dev (3.7.9-2ubuntu1.1)
+    libpam0g-dev (1.1.3-7ubuntu2)
+    sqlite3 (3.7.9-2ubuntu1.1)
+
+  If post-build testing is desired and/or required (via 'make check'),
+  the TAP library will need to be installed manually since none of the
+  distributions listed above bundle it.
+
+INSTALLATION
+
+  To build and install the software associated with this library, run
+  the following commands from within a Bourne shell:
+
+    $ ./configure
+    $ make
+    $ sudo make install
+    $ sudo ldconfig
+
+  If the TAP library is installed on the build system, you can
+  optionally exercise the built-in test harness before installing the
+  software.  The command sequence, in that case, would be as follows:
+
+    $ ./configure
+    $ make
+    $ make check
+    $ sudo make install
+    $ sudo ldconfig
+
+  Note that the command sequences provided above will result in
+  PathWell components being installed under the default prefix
+  of /usr/local/.  More specifically, command-line utilities will
+  be installed under /usr/local/bin/, compiled libraries under
+  /usr/local/lib/, and the PAM module under /usr/local/lib/security/.
+
+  Note that it may be necessary to pass extra parameters to configure
+  if any prerequisites (e.g., GMP, PCRE, TAP, etc.) are installed
+  in alternate or non-standard locations.  Each prerequisite has a
+  corresponding option of the form --with-<prerequisite> that you
+  may use to specify the alternate location.  For example, if your
+  version of TAP was installed in '/path/to/tapdir', you would
+  specify '--with-tap=/path/to/tapdir'.
+
+  Linux distribution maintainers may wish to pass configure options
+  for fine-grained control of installation paths such as
+  '--prefix=/usr', '--with_securedir=/lib/x86_64-linux-gnu/security/',
+  etc.
+
+  See ./configure --help for a full list of supported parameters.
+
+CONFIGURATION
+
+  Once installation is complete, the library and its accompanying
+  command line utilities will be ready for use.  However, the PAM
+  module must be configured before it can be used.  Instructions on
+  how to do that are provided in README.PAM.
+

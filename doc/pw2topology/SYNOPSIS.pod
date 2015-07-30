@@ -1,0 +1,5 @@
+
+=head1 SYNOPSIS
+
+B<pathwell-pw2topology> B<[-f {file|-}]> B<[-s token-set]> B<[password [...]]>
+

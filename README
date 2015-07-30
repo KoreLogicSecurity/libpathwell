@@ -1,0 +1,46 @@
+
+REVISION
+
+  $Id: README,v 1.4.2.1 2015/07/29 01:18:31 klm Exp $
+
+OVERVIEW
+
+  PathWell (Password Topology Histogram Wear-Leveling) is a new
+  approach to measuring and enforcing password complexity, focusing on
+  the uniqueness of each user password's topology.
+
+  A password's "topology" is its "shape", such as "Uppercase letter,
+  followed by several lowercase letters, several numbers, and then a
+  special character".  When many users are required to create
+  passwords fitting some conventional strength rules (such as minimum
+  length, minimum number of character sets), they tend to gravitate
+  towards common topologies.  Password cracking tools incorporate this
+  (called "masks" in oclHashcat, for example).  A set of password
+  hashes with a slow (difficult) cipher, or a set of very long
+  (14-character or more) passwords may be infeasible to blindly crack,
+  but by focusing on only 1-5 most popular topologies, an attacker
+  might crack 5-10% or more of an enterprise's user passwords in hours
+  or days instead of years of effort.
+
+  Password crackers would have a far lower success rate if topologies
+  could not be reused by multiple users.  PathWell provides tools to
+  measure the bias in a user population (how overused the most popular
+  topologies are), allow an administrator to disallow the most
+  universally common topologies (blacklists), and/or disallow any user
+  from re-using a topology that is in use by other users of the same
+  system (wear-level enforcement).
+
+DOCUMENTATION
+
+  General documentation is located in the doc directory; they will
+  be installed as standard man pages during software installation.  See
+  the README.INSTALL file for instructions on how to build, test, and
+  install the library, and the README.PAM file for instructions on how
+  to configure and enable the pam_pathwell.so PAM module on several
+  different target Linux distributions.
+
+LICENSE
+
+  The terms and conditions under which this software is released are
+  set forth in README.LICENSE.
+

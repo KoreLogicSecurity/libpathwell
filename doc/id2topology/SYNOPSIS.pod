@@ -1,0 +1,5 @@
+
+=head1 SYNOPSIS
+
+B<pathwell-id2topology> B<[-f {file|-}]> B<[-s token-set]> B<[-t encoding-type]> B<[id [...]]>
+

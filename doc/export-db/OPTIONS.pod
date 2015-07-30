@@ -1,0 +1,21 @@
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<[-d /path/to/PathWell.db]>
+
+Path and name of the database that is to be exported.
+
+The default value is "/var/lib/PathWell/PathWell.db".
+
+=item B<-l>
+
+List the tables in the PathWell database.  Either -l or -t is manditory.
+
+=item B<-t {all|<tablename>[,<tablename>[,...]}>
+
+Export the contents of all tables, or the specific named tables, in the PathWell database in CSV format.  Either -l or -t is manditory.
+
+=back
+

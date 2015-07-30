@@ -1,0 +1,77 @@
+
+REVISION
+
+  $Id: README.SELinux,v 1.2.2.1 2015/07/29 01:18:31 klm Exp $
+
+OVERVIEW
+
+  When installing the PathWell PAM module on a system with SELinux
+  enabled, some additional configuration steps are required.  This
+  file details those steps.
+
+  The pam_pathwell.so module interacts with an SQLite database file.
+  By default, this will be /var/lib/PathWell/PathWell.db.
+
+  A typical SELinux configuration (such as the one that ships with
+  Fedora 19) will not allow pam_pathwell.so, when called by passwd(1),
+  to write to /var/lib/PathWell/ or any files under it.
+
+  It is possible to completely disable SELinux by running 'setenforce
+  0', or setting SELINUX=disabled in /etc/selinux/config and rebooting
+  the system.  However, this is not recommended, except perhaps for
+  testing.  The following gives an example of modifying the SELinux
+  configuration to allow PathWell to function.
+
+PREREQUISITES
+
+  The following commands require the checkpolicy package be installed.
+
+SELINUX CONFIGURATION
+
+  Allowing PathWell to work on an SELinux-enabled Fedora system
+  requires 1) labeling the PathWell directory appropriately,
+  2) creating an SELinux policy, 3) compiling/packaging that policy,
+  and then 4) loading the policy into the kernel for subsequent use:
+
+  1) Label the PathWell directory as part of the shadow_t file set:
+
+    $ semanage fcontext -a -t shadow_t '/var/lib/PathWell(/.*)?'
+
+  2) Create an SELinux policy for PathWell:
+
+    $ cat > PathWell.te <<EOF
+
+module PathWell 1.0;
+
+require {
+        type var_t;
+        type passwd_t;
+        type shadow_t;
+        type var_lib_t;
+        class dir { write remove_name search add_name };
+        class file create;
+}
+
+#============= passwd_t ==============
+allow passwd_t shadow_t:dir remove_name;
+
+allow passwd_t shadow_t:dir { write search add_name };
+
+allow passwd_t var_lib_t:dir write;
+
+allow passwd_t var_t:file create;
+EOF
+
+  3) Compile/Package the policy:
+
+    $ checkmodule -M -m -o PathWell.mod PathWell.te
+    $ semodule_package -o PathWell.pp -m PathWell.mod
+
+  4) Load the policy into the kernel for subsequent use:
+
+    $ semodule -i PathWell.pp
+
+SEE ALSO
+
+  audit2allow(1), checkmodule(8), semanage(8)
+

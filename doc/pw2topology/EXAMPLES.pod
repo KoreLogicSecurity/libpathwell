@@ -1,0 +1,13 @@
+
+=head1 EXAMPLES
+
+=head2 Example 1. Charsets ?d, ?l, ?u, ?s (default)
+
+    $ pathwell-pw2topology 'Summer2013!'
+    Password='Summer2013!'; Topology='?u?l?l?l?l?l?d?d?d?d?s';
+
+=head2 Example 2. Charsets ?d, ?l, ?u, ?s (default), STDIN
+
+    $ echo 'Password123.' | pathwell-pw2topology -f -
+    Password='Password123.'; Topology='?u?l?l?l?l?l?l?l?d?d?d?s';
+

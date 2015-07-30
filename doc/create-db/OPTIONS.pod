@@ -1,0 +1,25 @@
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<[-c]>
+
+Specifies that missing directories are to be created as necessary.
+
+=item B<-d db>
+
+Specifies the path and name name of the database that is to be
+created.  A typical value is '/var/lib/PathWell/PathWell.db'.
+
+=item B<[-f blacklist-file]>
+
+Specifies a file containing blacklisted topologies, one per
+line, to be loaded into the database.  The default value for
+this option is '/etc/PathWell/topology_blacklist.local' with
+'/usr/share/PathWell/topology_blacklist.default' as the fallback.
+Note: If this option isn't specified and neither of the default
+files exist, no topologies will be loaded.
+
+=back
+

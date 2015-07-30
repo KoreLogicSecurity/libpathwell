@@ -1,0 +1,5 @@
+
+=head1 SYNOPSIS
+
+B<pathwell-export-db> B<[-d db]> B<{-l|-t {all|<tablename>[,<tablename>[,...]}}>
+

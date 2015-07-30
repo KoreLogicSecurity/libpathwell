@@ -1,0 +1,28 @@
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<[-f {file|-}]>
+
+Specifies the name of the input file. A value of '-' will cause the
+program to read from stdin.
+
+=item B<[-s token-set]>
+
+Specifies the ID (see below) of the token set to use while performing
+conversions. The default value is '1'.
+
+    1 - ?d, ?l, ?u, ?s
+    2 - ?d, ?l, ?u, ?s, ?f
+    3 - ?d, ?l, ?u, ?s, ?f, ?x
+    4 - ?d, ?l, ?u, ?s, ?f, ?x, ?H
+
+=item B<[-t encoding-type]>
+
+Specifies the type of encoding to use while performing
+conversions. Currently, the following encoding types are supported:
+'baseN+1' and 'bitmask'. The default value is 'baseN+1'.
+
+=back
+

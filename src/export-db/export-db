@@ -1,0 +1,149 @@
+#!/bin/bash
+######################################################################
+#
+# $Id: export-db,v 1.6 2013/10/29 09:22:02 hlein Exp $
+#
+######################################################################
+#
+# Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+#
+# This software, having been partly or wholly developed and/or
+# sponsored by KoreLogic, Inc., is hereby released under the terms
+# and conditions set forth in the project's "README.LICENSE" file.
+# For a list of all contributors and sponsors, please refer to the
+# project's "README.CREDITS" file.
+#
+######################################################################
+#
+# Purpose: Export tables from a PathWell database in CSV format.
+#
+######################################################################
+
+IFS=' 	
+'
+
+PROGRAM=`basename ${0}`
+
+######################################################################
+#
+# Usage
+#
+######################################################################
+
+Usage()
+{
+  cat <<EOERR 1>&2
+
+Usage: ${PROGRAM} [-d <db>] {-l|-t {all|<tablename>[,<tablename>[,...]}}
+
+Where options can be any of the following:
+
+  -d <db>
+                        Path and name of the database that is to be exported.
+                        The default value is "/var/lib/PathWell/PathWell.db".
+
+  -l
+                        List tables in the PathWell database.
+
+  -t {all|<tablename>[,<tablename>[,...]}
+                        Export the contents of all tables, or the specific
+                        named tables, in the PathWell database in CSV format.
+
+EOERR
+  exit 1
+}
+
+export PATHWELL_DB=/var/lib/PathWell/PathWell.db
+export LIST_TABLES=0
+
+####################################################################
+#
+# Parse the options list.
+#
+####################################################################
+
+while getopts "d:lt:" OPTION ; do
+  case "${OPTION}" in
+  d)
+    PATHWELL_DB="${OPTARG}"
+    ;;
+  l)
+    LIST_TABLES=1
+    ;;
+  t)
+    TABLE_ARGS="${OPTARG}"
+    ;;
+  *)
+    Usage
+    ;;
+  esac
+done
+
+####################################################################
+#
+# Sanity check arguments and the environment.
+#
+####################################################################
+
+if [ -z "${TABLE_ARGS}" -a "$LIST_TABLES" != "1" ] ; then
+  Usage
+fi
+
+if [ -n "${TABLE_ARGS}" -a "$LIST_TABLES" = "1" ]; then
+  Usage
+fi
+
+if ! hash sqlite3 >/dev/null 2>&1 ; then
+  echo "${PROGRAM}: Error='sqlite3 not found in PATH, cannot continue.'" 1>&2
+  exit 2
+fi
+
+if [ ! -f "${PATHWELL_DB}" ] ; then
+  echo "${PROGRAM}: Error='PathWell database (${PATHWELL_DB}) does not exist.  Check that the path is correct.  Note that it is not automatically created until the first time pam_pathwell.so is invoked from passwd(1).'" 1>&2
+  exit 2
+fi
+
+if [ ! -s "${PATHWELL_DB}" ] ; then
+  echo "${PROGRAM}: Error='PathWell database (${PATHWELL_DB}) is empty.'" 1>&2
+  exit 2
+fi
+
+if ! file "${PATHWELL_DB}" 2>&1 | egrep -i 'sqlite.*database' >/dev/null ; then
+  echo "${PROGRAM}: Error='PathWell database (${PATHWELL_DB}) does not appear to be an sqlite3 database.'" 1>&2
+  exit 2
+fi
+
+######################################################################
+#
+# Do some work.
+#
+######################################################################
+
+# Extract the list of tables.  Note, '.tables' would be simpler,
+# but its output format cannot be controlled or easily sorted.
+ALL_TABLE_NAMES=$(echo ".schema" | sqlite3 "${PATHWELL_DB}" | sed -r -n 's/^CREATE TABLE ([^ ]+) .*/\1/p' | sort)
+if [ -z "${ALL_TABLE_NAMES}" ] ; then
+  echo "${PROGRAM}: Error='PathWell database (${PATHWELL_DB}) contains no tables.'" 1>&2
+  exit 2
+fi
+
+# In list mode, just print the table names and exit
+if [ "$LIST_TABLES" = "1" ]; then
+  echo $ALL_TABLE_NAMES
+  exit 0
+fi
+
+if [ "${TABLE_ARGS}" = 'all' ] ; then
+  TABLE_NAMES="$ALL_TABLE_NAMES"
+else
+  TABLE_NAMES="$(echo "${TABLE_ARGS}" | sed 's/,/ /g')"
+fi
+
+for TABLE_NAME in ${TABLE_NAMES} ; do
+  echo "${TABLE_NAME}:"
+  # Error out if an sqlite run fails.
+  if ! echo "SELECT * FROM ${TABLE_NAME};" | sqlite3 -header -separator , "${PATHWELL_DB}" ; then
+    echo "${PROGRAM}: Error='Export failed for table ${TABLE_NAME}, quitting.'" 1>&2
+    exit 3
+  fi
+done

@@ -1,0 +1,7 @@
+
+=head1 SYNOPSIS
+
+password required pam_pathwell.so mode=enforce [options]
+
+password optional pam_pathwell.so mode=monitor [options]
+

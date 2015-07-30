@@ -1,0 +1,15 @@
+
+=head1 EXAMPLES
+
+=head2 Example 1. List tables from a Pathwell Database in the default location
+
+    $ pathwell-export-db -l
+
+=head2 Example 2. Export all tables from a Pathwell Database in the default location
+
+    $ pathwell-export-db -t all
+
+=head2 Example 3. Export only the base4p1 table from a database in an alternate location
+
+    $ pathwell-export-db -d /root/PathWellTest.db -t base4p1
+

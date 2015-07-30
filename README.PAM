@@ -1,0 +1,283 @@
+
+REVISION
+
+  $Id: README.PAM,v 1.20.2.7 2015/07/29 20:00:37 hlein Exp $
+
+OVERVIEW
+
+  PathWell (Password Topology Histogram Wear-Leveling) is a new
+  approach to measuring and enforcing password complexity, focusing on
+  the uniqueness of each user password's topology.
+
+  A password's "topology" is its "shape", such as "Uppercase letter,
+  followed by several lowercase letters, several numbers, and then a
+  special character".  When many users are required to create
+  passwords fitting some conventional strength rules (such as minimum
+  length, minimum number of character sets), they tend to gravitate
+  towards common topologies.  Password cracking tools incorporate this
+  (called "masks" in oclHashcat, for example).  A set of password
+  hashes with a slow (difficult) cipher, or a set of very long
+  (14-character or more) passwords may be infeasible to blindly crack,
+  but by focusing on only 1-5 most popular topologies, an attacker
+  might crack 5-10% or more of an enterprise's user passwords in hours
+  or days instead of years of effort.
+
+  Password crackers would have a far lower success rate if topologies
+  could not be reused by multiple users.  PathWell provides tools to
+  measure the bias in a user population (how overused the most popular
+  topologies are), allow an administrator to disallow the most
+  universally common topologies (blacklists), and/or disallow any user
+  from re-using a topology that is in use by other users of the same
+  system (wear-level enforcement).
+
+REQUIREMENTS
+
+  Please refer to README.INSTALL.
+
+INSTALLATION
+
+  Please refer to README.INSTALL.
+
+CONFIGURATION
+
+  To enable the PathWell PAM module, first create the PathWell
+  database, and then modify the system's PAM configuration to activate
+  the desired modes for pam_pathwell.so.
+
+  DATABASE CREATION
+  -----------------
+
+  Use the included pathwell-create-db tool to create and initialize
+  the PathWell database.  The standard path for the DB is
+  /var/lib/PathWell/PathWell.db.  That directory should not be world
+  executable or world readable.  A suitable command line might be:
+
+    $ sudo pathwell-create-db -c -d /var/lib/PathWell/PathWell.db
+    $ sudo chmod 0750 /var/lib/PathWell/
+
+  This creates the database file, making the path if necessary, and
+  setting proper permissions if the directory did already exist.  If
+  desired, the topology blacklist can be customized prior to creating
+  the database.  See pathwell-create-db(1) for more details and
+  command-line options.
+
+  PAM MODULE CONFIGURATION
+  ------------------------
+
+  Enable the PAM module by modifying the appropriate configuration
+  file under /etc/pam.d.  The exact file and location to place the
+  changes depends on the existing pam.d contents, which are highly
+  Linux-Distribution-specific.  Below are general explanations of
+  PathWell-related pam.d entries, followed by distribution-specific
+  examples tested on specific versions of Gentoo, Debian, Fedora, and
+  Ubuntu.
+
+  See the pam_pathwell(8) man page for full details; the below is
+  intended to be a quick overview of the most common deployment
+  options.
+
+  There are several operational modes supported in pam_pathwell.so;
+  the desired mode/combination determines how the module should be
+  configured.
+
+  Monitor (Audit) Mode
+  --------------------
+
+  Monitor mode updates a password topology use count in the PathWell
+  data store each time a user's password is changed.  Note that
+  this can be done without enforcement to build up a histogram of
+  topologies used over time, or it can be done in combination with
+  enforcement to effect wear-leveling, which prevents users from
+  selecting passwords whose topologies are already used or overused.
+
+  To enable monitoring, add the line provided below to the module
+  stack for the password management group (see the distribution
+  specific notes below for exactly which file and at what line it
+  should be added):
+
+    password optional pam_pathwell.so mode=monitor use_authtok
+
+  Enforcement Mode
+  ----------------
+
+  Enforcement mode will disallow a user's proposed new password
+  if it or its topology is rejected.  Note that the root user can
+  always set a desired password - pam_pathwell will never refuse
+  a password being set by root.
+
+  Passwords will be rejected whenever the user changing the password
+  is not root and at least one of the following conditions is true:
+
+  - The minlen option is greater than zero, and the proposed new
+    password length is shorter than the minimum required length.
+    Note that this option is disabled by default; typically a system
+    will have a different PAM module already enforcing a minimum
+    length, so having pam_pathwell.so enforce minlen is not needed.
+
+  - The blacklist option is enabled, and the proposed new password
+    topology is on the blacklist.  Note that this option is disabled
+    by default.
+
+  - The minlev option is greater than zero, and the proposed new
+    password topology is too similar to the one associated with the
+    previous password (see pam_pathwell(8) for more details about
+    Lev distances).  Note that this option is disabled by default.
+
+  - The maxuse option is greater than zero, and the topology of the
+    proposed new password is already in use by the maximum number of
+    allowed users (i.e., use count >= maxuse).  Note, however, that
+    for this type of enforcement to be effective, mode=monitor must
+    also be enabled in the module stack, so that topology usage is
+    tracked (see the notes about combining modes below).  Also note
+    that this option is enabled by default with a value of one.
+
+  To enable enforcement with blacklists enabled, add the line
+  provided below to the module stack for the password management
+  group:
+
+    password required pam_pathwell.so mode=enforce use_authtok blacklist
+
+  See pam_pathwell(8) for more details about the various parameters
+  available and how they may be tuned to control enforcement
+  behavior.
+
+  Combined Monitoring and Enforcement
+  -----------------------------------
+
+  To enable both Monitor mode and Enforcement mode, add both
+  entries provided above to the module stack for the password
+  management group per the placement instructions given below.
+  See pam_pathwell(8) for more examples.
+
+  Per-Distribution PAM Configuration
+  ----------------------------------
+
+  Each Linux distribution configures their PAM modules differently.
+  Here are detailed examples for several Linux distributions on which
+  PathWell has been tested.  Note that some distributions have pam.d
+  configuration management tools, but those tools do not support
+  PathWell, so they can't be used here.  See the PREREQUISITES
+  INSTALLATION section of README.INSTALL for more details about the
+  tested distribution version and architecture, and package
+  requirements.
+
+  Note that entries under pam.d/* can reference PAM modules using
+  either a full (e.g., /usr/local/lib/security/pam_pathwell.so) or
+  relative path.  If a relative path is specified, then the default
+  locations are assumed for a given Linux distribution / PAM
+  configuration (typically /lib/security/ or /lib64/security/).  If
+  you compiled PathWell from source and did not specify the correct
+  secure directory (i.e., --with_securedir=/path/to/securedir), you
+  will likely be required to use full paths in your PAM entries.
+  Keep that in mind as you review the examples provided below.
+
+  Debian
+
+  - All relevant settings are in /etc/pam.d/common-password.  Note
+    that Debian has a "pam-auth-update" utility, but using it to
+    manage PathWell-related PAM settings is not supported.  A fresh
+    Debian installation contains these lines in
+    /etc/pam.d/common-password (comment lines have been removed):
+
+      password        [success=1 default=ignore]      pam_unix.so obscure sha512
+      password        requisite                       pam_deny.so
+      password        required                        pam_permit.so
+
+  - To enable Monitor mode, add the mode=monitor line just before the
+    pam_permit.so line:
+
+      password        [success=1 default=ignore]      pam_unix.so obscure sha512
+      password        requisite                       pam_deny.so
+      password        optional                        pam_pathwell.so mode=monitor use_authtok
+      password        required                        pam_permit.so
+
+  - Because of the way those existing lines are configured, more
+    changes are required to enable enforcement than just adding
+    a line:
+
+      password        [success=ok default=ignore]     pam_pathwell.so mode=enforce blacklist
+      password        [success=1 default=ignore]      pam_unix.so obscure sha512 use_authtok
+      password        requisite                       pam_deny.so
+      password        required                        pam_permit.so
+
+  - To enable both Monitoring and Enforcement:
+
+      password        [success=ok default=ignore]     pam_pathwell.so mode=enforce blacklist
+      password        [success=1 default=ignore]      pam_unix.so obscure sha512 use_authtok
+      password        requisite                       pam_deny.so
+      password        optional                        pam_pathwell.so mode=monitor use_authtok
+      password        required                        pam_permit.so
+
+  Fedora
+
+  - On a typical Fedora system, all relevant settings are in
+    /etc/pam.d/system-auth-ac, with /etc/pam.d/system-auth being a
+    symbolic link to this file.
+
+  - Note that the Fedora-recommended method for managing pam.d
+    settings is via either the authconfig or
+    system-config-authentication tools.  These tools do not support
+    PathWell configuration, so they must not be used.
+
+  - Note that Fedora systems are likely to have SELinux enabled, in
+    which case more steps are needed to update the SELinux
+    configuration.  See README.SELinux.
+
+  - The relevant settings in the default /etc/pam.d/system-auth are:
+
+      password    requisite     pam_pwquality.so try_first_pass retry=3 authtok_type=
+      password    sufficient    pam_unix.so md5 shadow nullok try_first_pass use_authtok
+      password    required      pam_deny.so
+
+  - Because of the way those existing lines are configured (the use
+    of the "sufficient" pam control value), more changes are required
+    than just adding monitor / enforce lines.
+
+  - To enable Monitor mode, change that stanza to:
+
+      password    requisite     pam_pwquality.so try_first_pass retry=3 authtok_type=
+      password    required      pam_unix.so md5 shadow nullok try_first_pass use_authtok
+      password    optional      pam_pathwell.so mode=monitor use_authtok
+      password    optional      pam_deny.so
+
+  - To enable Enforcement mode, change it to:
+
+      password    requisite     pam_pwquality.so try_first_pass retry=3 authtok_type=
+      password    required      pam_pathwell.so mode=enforce use_authtok blacklist
+      password    sufficient    pam_unix.so md5 shadow nullok try_first_pass use_authtok
+      password    required      pam_deny.so
+
+  - To enable both Monitoring and Enforcement, change it to:
+
+      password    requisite     pam_pwquality.so try_first_pass retry=3 authtok_type=
+      password    requisite     pam_pathwell.so mode=enforce use_authtok blacklist
+      password    required      pam_unix.so md5 shadow nullok try_first_pass use_authtok
+      password    sufficient    pam_pathwell.so mode=monitor use_authtok
+      password    optional      pam_deny.so
+
+  Gentoo
+
+  - All relevant settings are in /etc/pam.d/system-auth, in the lines
+    that begin with "password".  A fresh Gentoo installation contains
+    this section:
+
+      password        required        pam_cracklib.so difok=2 minlen=8 dcredit=2 ocredit=2 retry=3
+      password        required        pam_unix.so try_first_pass use_authtok nullok sha512 shadow
+      password        optional        pam_permit.so
+
+  - To enable Monitor mode, add the mode=monitor line second to last,
+    just before the pam_permit.so line.
+
+  - To enable Enforcement mode, add the mode=enforce line second,
+    between the pam_cracklib.so line and the pam_unix.so line.
+
+  - To enable both Monitoring and Enforcement, add the
+    mode=enforce line second, and add the mode=monitor line second
+    to last.
+
+  Ubuntu
+
+  - As of Ubuntu 12.04 LTS and Debian 7.2, PAM configuration for
+    PathWell is identical.  Follow the Debian instructions above to
+    configure PathWell on Ubuntu.
+

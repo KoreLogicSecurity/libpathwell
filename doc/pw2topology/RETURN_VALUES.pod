@@ -1,0 +1,26 @@
+
+=head1 RETURN VALUES
+
+Upon successful completion, a value of 0 (XER_OK) is returned.
+Otherwise, one of the following error codes is returned:
+
+=over 5
+
+=item *
+
+B<1 => B<XER_Usage>
+
+=item *
+
+B<2 => B<XER_Bootstrap>
+
+=item *
+
+B<3 => B<XER_Setup>
+
+=item *
+
+B<4 => B<XER_Conversion>
+
+=back
+

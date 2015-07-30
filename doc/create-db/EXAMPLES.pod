@@ -1,0 +1,15 @@
+
+=head1 EXAMPLES
+
+=head2 Example 1. Create a DB in `pwd`
+
+    $ pathwell-create-db -d PathWell.db
+
+=head2 Example 2. Create a DB in the standard directory, mkdir'ing if necessary
+
+    $ pathwell-create-db -c -d /var/lib/PathWell/PathWell.db
+
+=head2 Example 3. Create a DB in `pwd` with an alternate blacklist file
+
+    $ pathwell-create-db -f my_blacklist -d PathWell.db
+
