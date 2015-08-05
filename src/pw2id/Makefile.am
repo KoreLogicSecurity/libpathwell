@@ -7,4 +7,6 @@ pathwell_pw2id_SOURCES = pw2id.c
 
 pathwell_pw2id_LDFLAGS = -L$(top_builddir)/src/libpathwell/.libs -lpathwell
 
+pathwell_pw2id_CFLAGS = @pcre_cflags@
+
 include $(top_srcdir)/utils/common.am

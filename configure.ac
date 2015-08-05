@@ -1,6 +1,6 @@
 ########################################################################
 #
-# $Id: configure.ac,v 1.52 2013/10/29 13:41:16 klm Exp $
+# $Id: configure.ac,v 1.52.2.3 2015/08/05 18:18:08 klm Exp $
 #
 ########################################################################
 
@@ -135,7 +135,10 @@ CheckGmpComponents()
   INCLUDE_LIST="gmp.h"
   for INCLUDE_FILE in ${INCLUDE_LIST} ; do
     if test ! -f "${GMPDIR}/include/${INCLUDE_FILE}" ; then
-      return 1
+      my_target="${target_cpu}-${target_os}"
+      if test ! -f "${GMPDIR}/include/${my_target}/${INCLUDE_FILE}" ; then
+        return 1
+      fi
     fi
   done
   my_gmpdir=${GMPDIR}

@@ -7,4 +7,6 @@ pathwell_create_db_SOURCES = create-db.c
 
 pathwell_create_db_LDFLAGS = -L$(top_builddir)/src/libpathwell/.libs -lpathwell
 
+pathwell_create_db_CFLAGS = @sqlite_cflags@
+
 include $(top_srcdir)/utils/common.am

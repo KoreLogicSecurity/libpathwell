@@ -7,4 +7,6 @@ pathwell_id2topology_SOURCES = id2topology.c
 
 pathwell_id2topology_LDFLAGS = -L$(top_builddir)/src/libpathwell/.libs -lpathwell
 
+pathwell_id2topology_CFLAGS = @pcre_cflags@
+
 include $(top_srcdir)/utils/common.am
