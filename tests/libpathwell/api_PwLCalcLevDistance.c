@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwLCalcLevDistance.c,v 1.13 2013/11/04 13:48:26 klm Exp $
+ * $Id: api_PwLCalcLevDistance.c,v 1.13.2.4 2015/09/30 17:54:50 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -15,8 +15,12 @@
  *
  ***********************************************************************
  */
+#if defined(HAVE_CONFIG_H)
+#include "config.h"
+#endif
 #include <pathwell.h>
 #include <stdio.h>
+#include <string.h>
 #include <tap.h>
 
 typedef struct _TEST_TUPLES
@@ -133,43 +137,43 @@ main(int iArgumentCount, char *ppcArgumentVector[])
   plan_tests(82);
 
   psPwTContextA = PwTNewContext();
-//ok(psPwTContextA != NULL, "new PwT context A");
+//ok(psPwTContextA != NULL, "%s", "new PwT context A");
   psPwTContextB = PwTNewContext();
-//ok(psPwTContextB != NULL, "new PwT context B");
+//ok(psPwTContextB != NULL, "%s", "new PwT context B");
   psPwLContext = PwLNewContextFromParameters(psPwTContextA, psPwTContextB);
-//ok(psPwLContext != NULL, "new PwL context");
+//ok(psPwLContext != NULL, "%s", "new PwL context");
 
   iError = PwLCheckLevDistance(NULL, 0);
-  ok(iError == ER, "Null PwL context handling");
+  ok(iError == ER, "%s", "Null PwL context handling");
   psPwLContext->psPwTContextA = NULL;
   psPwLContext->psPwTContextB = NULL;
   iError = PwLCheckLevDistance(psPwLContext, 0);
-  ok(strcmp(PwLGetError(psPwLContext), "Invalid member context. That should not happen.") == 0, "Null PwT context handling (A+B)");
+  ok(strcmp(PwLGetError(psPwLContext), "Invalid member context. That should not happen.") == 0, "%s", "Null PwT context handling (A+B)");
   psPwLContext->psPwTContextA = NULL;
   psPwLContext->psPwTContextB = psPwTContextB;
   iError = PwLCheckLevDistance(psPwLContext, 0);
-  ok(strcmp(PwLGetError(psPwLContext), "Invalid member context. That should not happen.") == 0, "Null PwT context handling (A)");
+  ok(strcmp(PwLGetError(psPwLContext), "Invalid member context. That should not happen.") == 0, "%s", "Null PwT context handling (A)");
   psPwLContext->psPwTContextA = psPwTContextA;
   psPwLContext->psPwTContextB = NULL;
   iError = PwLCheckLevDistance(psPwLContext, 0);
-  ok(strcmp(PwLGetError(psPwLContext), "Invalid member context. That should not happen.") == 0, "Null PwT context handling (B)");
+  ok(strcmp(PwLGetError(psPwLContext), "Invalid member context. That should not happen.") == 0, "%s", "Null PwT context handling (B)");
   psPwLContext->psPwTContextA = psPwTContextA;
   psPwLContext->psPwTContextB = psPwTContextB;
 
   for (iIndex = 0; iIndex < (sizeof(asTuples) / sizeof(asTuples[0])); iIndex++)
   {
     iError = PwTSetEncoding(psPwTContextA, (strcmp(asTuples[iIndex].acTypeA, "bitmask") == 0) ? PATHWELL_ENCODING_BITMASK : PATHWELL_ENCODING_BASENP1);
-//  ok(iError == 0, "set encoding A");
+//  ok(iError == 0, "%s", "set encoding A");
     iError = PwTSetEncoding(psPwTContextB, (strcmp(asTuples[iIndex].acTypeB, "bitmask") == 0) ? PATHWELL_ENCODING_BITMASK : PATHWELL_ENCODING_BASENP1);
-//  ok(iError == 0, "set encoding B");
+//  ok(iError == 0, "%s", "set encoding B");
     iError = PwTSetTokenSet(psPwTContextA, asTuples[iIndex].iTokenSetA);
-//  ok(iError == 0, "set token set A");
+//  ok(iError == 0, "%s", "set token set A");
     iError = PwTSetTokenSet(psPwTContextB, asTuples[iIndex].iTokenSetB);
-//  ok(iError == 0, "set token set B");
+//  ok(iError == 0, "%s", "set token set B");
     iError = PwTSetTopology(psPwTContextA, (strcmp(asTuples[iIndex].acTopologyA, "undef") == 0) ? NULL : asTuples[iIndex].acTopologyA);
-//  ok(iError == 0, "set topology A");
+//  ok(iError == 0, "%s", "set topology A");
     iError = PwTSetTopology(psPwTContextB, (strcmp(asTuples[iIndex].acTopologyB, "undef") == 0) ? NULL : asTuples[iIndex].acTopologyB);
-//  ok(iError == 0, "set topology B");
+//  ok(iError == 0, "%s", "set topology B");
 
     iDistance = PwLCalcLevDistance(psPwLContext);
     if (iDistance >= 0)
@@ -188,7 +192,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
         asTuples[iIndex].iDistance,
         iDistance
       );
-      ok(iDistance == asTuples[iIndex].iDistance, acDescription);
+      ok(iDistance == asTuples[iIndex].iDistance, "%s", acDescription);
     }
     else
     {
@@ -208,7 +212,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
         asTuples[iIndex].acError,
         PwLGetError(psPwLContext)
       );
-      ok(strcmp(PwLGetError(psPwLContext), asTuples[iIndex].acError) == 0, acDescription);
+      ok(strcmp(PwLGetError(psPwLContext), asTuples[iIndex].acError) == 0, "%s", acDescription);
     }
   }
 

@@ -1,6 +1,6 @@
 ########################################################################
 #
-# $Id: configure.ac,v 1.52.2.3 2015/08/05 18:18:08 klm Exp $
+# $Id: configure.ac,v 1.52.2.6 2015/09/10 21:32:43 klm Exp $
 #
 ########################################################################
 
@@ -99,6 +99,13 @@ dnl ####################################################################
 AC_LIBTOOL_WIN32_DLL
 AC_PROG_LIBTOOL
 
+case "${target_os}" in
+*mingw*)
+  libtool_flags="-no-undefined"
+  AC_SUBST(libtool_flags)
+  ;;
+esac
+
 dnl ####################################################################
 dnl #
 dnl # Check for libraries.
@@ -129,6 +136,8 @@ dnl # Check for GMP.
 dnl #
 dnl ####################################################################
 
+my_gmpdir_specified="0"
+
 CheckGmpComponents()
 {
   GMPDIR=${1}
@@ -149,6 +158,7 @@ AC_MSG_CHECKING([for GMP support])
 AC_ARG_WITH(gmp,
   [  --with-gmp=DIR          Use GMP with includes and libs from [DIR]/include and [DIR]/lib],
   [
+    my_gmpdir_specified="1"
     CheckGmpComponents "${withval}"
   ],
   [
@@ -174,6 +184,13 @@ else
   gmp_cflags="-I${my_gmpdir}/include"
   gmp_ldadd="-lgmp"
   gmp_ldflags="-L${my_gmpdir}/lib"
+  case "${target_os}" in
+  *mingw*)
+    if test ${my_gmpdir_specified} -eq 1 ; then
+      export PATH="${PATH}:${my_gmpdir}/bin"
+    fi
+    ;;
+  esac
   AC_SUBST(gmp_cflags)
   AC_SUBST(gmp_ldadd)
   AC_SUBST(gmp_ldflags)
@@ -216,6 +233,8 @@ dnl # Check for PAM.
 dnl #
 dnl ####################################################################
 
+my_pamdir_specified="0"
+
 CheckPAMComponents()
 {
   PAMDIR=${1}
@@ -231,11 +250,22 @@ CheckPAMComponents()
 
 AC_MSG_CHECKING([for PAM support])
 AC_ARG_WITH(pam,
-  [  --with-pam=DIR          Use PAM with includes and libs from [DIR]/include and [DIR]/lib],
+  [  --with-pam=DIR          Use PAM with includes and libs from [DIR]/include and [DIR]/lib
+  --without-pam           Disable PAM support],
   [
-    CheckPAMComponents "${withval}"
+    case `echo ${withval} | tr "A-Z" "a-z"` in
+    no)
+      use_pam="0"
+      ;;
+    *)
+      use_pam="1"
+      my_pamdir_specified="1"
+      CheckPAMComponents "${withval}"
+      ;;
+    esac
   ],
   [
+    use_pam="1"
     for my_basedir in ${LIB_LIST} ; do
       for my_dir in "${my_basedir}" "${my_basedir}/pam" ; do
         CheckPAMComponents "${my_dir}" && break 2
@@ -243,56 +273,65 @@ AC_ARG_WITH(pam,
     done
   ]
 )
-if test -z "${my_pamdir}" ; then
-  AC_MSG_RESULT([missing or incomplete])
-  echo
-  echo "Unable to locate required PAM components. Use --with-pam=DIR to"
-  echo "specify a known or different location. The files that must exist for"
-  echo "this check to pass are:"
-  echo
-  echo "  DIR/include/pam_appl.h"
-  echo "  DIR/include/pam_modules.h"
-  echo
-  exit 1
-else
-  AC_MSG_RESULT([${my_pamdir}])
-  pam_cflags="-I${my_pamdir}/include"
-  pam_ldadd="-lpam"
-  pam_ldflags="-L${my_pamdir}/lib"
-  AC_SUBST(pam_cflags)
-  AC_SUBST(pam_ldadd)
-  AC_SUBST(pam_ldflags)
-  OLD_CFLAGS=${CFLAGS}
-  OLD_LIBS=${LIBS}
-  OLD_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
-  CFLAGS="${CFLAGS} ${pam_cflags}"
-  LIBS="${LIBS} ${pam_ldflags} ${pam_ldadd}"
-  export LD_LIBRARY_PATH="${my_pamdir}/lib:${LD_LIBRARY_PATH}"
-  AC_MSG_CHECKING([whether or not PAM release number is ok])
-  AC_RUN_IFELSE(
-    [
-      AC_LANG_SOURCE(
-      [[
+if test ${use_pam} -ne 0 ; then
+  AC_DEFINE(USE_PAM, 1, [Define to 1 if PAM support is enabled.])
+  if test -z "${my_pamdir}" ; then
+    AC_MSG_RESULT([missing or incomplete])
+    echo
+    echo "Unable to locate required PAM components. Use --with-pam=DIR to"
+    echo "specify a known or different location. The files that must exist for"
+    echo "this check to pass are:"
+    echo
+    echo "  DIR/include/pam_appl.h"
+    echo "  DIR/include/pam_modules.h"
+    echo
+    exit 1
+  else
+    AC_MSG_RESULT([${my_pamdir}])
+    pam_cflags="-I${my_pamdir}/include"
+    pam_ldadd="-lpam"
+    pam_ldflags="-L${my_pamdir}/lib"
+    pam_doc_subdirs="pam_pathwell"
+    pam_src_subdirs="pam_pathwell"
+    AC_SUBST(pam_cflags)
+    AC_SUBST(pam_ldadd)
+    AC_SUBST(pam_ldflags)
+    AC_SUBST(pam_doc_subdirs)
+    AC_SUBST(pam_src_subdirs)
+    OLD_CFLAGS=${CFLAGS}
+    OLD_LIBS=${LIBS}
+    OLD_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
+    CFLAGS="${CFLAGS} ${pam_cflags}"
+    LIBS="${LIBS} ${pam_ldflags} ${pam_ldadd}"
+    export LD_LIBRARY_PATH="${my_pamdir}/lib:${LD_LIBRARY_PATH}"
+    AC_MSG_CHECKING([whether or not PAM release number is ok])
+    AC_RUN_IFELSE(
+      [
+        AC_LANG_SOURCE(
+        [[
 #include <security/_pam_types.h>
 int main() { unsigned int uiVersion = (__LINUX_PAM__ << 16) | (__LINUX_PAM_MINOR__); return (uiVersion >= 0x00010000) ? 0 : 1; }
-      ]]
-      )
-    ],
-    [pam_version_ok="1"],
-    [pam_version_ok="0"],
-    [pam_version_ok="2"]
-  )
-  if test ${pam_version_ok} -eq 1 ; then
-    AC_MSG_RESULT([yes])
-  elif test ${pam_version_ok} -eq 2 ; then
-    AC_MSG_RESULT([skipped (cross-compiling)])
-  else
-    AC_MSG_RESULT([no (1.0 or higher required)])
-    exit 1
+        ]]
+        )
+      ],
+      [pam_version_ok="1"],
+      [pam_version_ok="0"],
+      [pam_version_ok="2"]
+    )
+    if test ${pam_version_ok} -eq 1 ; then
+      AC_MSG_RESULT([yes])
+    elif test ${pam_version_ok} -eq 2 ; then
+      AC_MSG_RESULT([skipped (cross-compiling)])
+    else
+      AC_MSG_RESULT([no (1.0 or higher required)])
+      exit 1
+    fi
+    CFLAGS=${OLD_CFLAGS}
+    LIBS=${OLD_LIBS}
+    export LD_LIBRARY_PATH=${OLD_LD_LIBRARY_PATH}
   fi
-  CFLAGS=${OLD_CFLAGS}
-  LIBS=${OLD_LIBS}
-  export LD_LIBRARY_PATH=${OLD_LD_LIBRARY_PATH}
+else
+  AC_MSG_RESULT(check explicitly disabled)
 fi
 
 dnl ####################################################################
@@ -300,6 +339,8 @@ dnl #
 dnl # Check for PCRE.
 dnl #
 dnl ####################################################################
+
+my_pcredir_specified="0"
 
 CheckPcreComponents()
 {
@@ -318,6 +359,7 @@ AC_MSG_CHECKING([for PCRE support])
 AC_ARG_WITH(pcre,
   [  --with-pcre=DIR         Use PCRE with includes and libs from [DIR]/include and [DIR]/lib],
   [
+    my_pcredir_specified="1"
     CheckPcreComponents "${withval}"
   ],
   [
@@ -343,6 +385,13 @@ else
   pcre_cflags="-I${my_pcredir}/include -DPCRE_STATIC"
   pcre_ldadd="-lpcre"
   pcre_ldflags="-L${my_pcredir}/lib"
+  case "${target_os}" in
+  *mingw*)
+    if test ${my_pcredir_specified} -eq 1 ; then
+      export PATH="${PATH}:${my_pcredir}/bin"
+    fi
+    ;;
+  esac
   AC_SUBST(pcre_cflags)
   AC_SUBST(pcre_ldadd)
   AC_SUBST(pcre_ldflags)
@@ -385,6 +434,8 @@ dnl # Check for SQLite.
 dnl #
 dnl ####################################################################
 
+my_sqlitedir_specified="0"
+
 CheckSqliteComponents()
 {
   SQLITEDIR=${1}
@@ -402,6 +453,7 @@ AC_MSG_CHECKING([for SQLite support])
 AC_ARG_WITH(sqlite,
   [  --with-sqlite=DIR       Use SQLite with includes and libs from [DIR]/include and [DIR]/lib],
   [
+    my_sqlitedir_specified="1"
     CheckSqliteComponents "${withval}"
   ],
   [
@@ -427,6 +479,13 @@ else
   sqlite_cflags="-I${my_sqlitedir}/include"
   sqlite_ldadd="-lsqlite3"
   sqlite_ldflags="-L${my_sqlitedir}/lib"
+  case "${target_os}" in
+  *mingw*)
+    if test ${my_sqlitedir_specified} -eq 1 ; then
+      export PATH="${PATH}:${my_sqlitedir}/bin"
+    fi
+    ;;
+  esac
   AC_SUBST(sqlite_cflags)
   AC_SUBST(sqlite_ldadd)
   AC_SUBST(sqlite_ldflags)
@@ -471,8 +530,8 @@ dnl #
 dnl ####################################################################
 
 my_tapdir=""
-my_tapdirfound="0"
-my_tapdirspecified="0"
+my_tapdir_found="0"
+my_tapdir_specified="0"
 
 CheckTAPComponents()
 {
@@ -485,7 +544,7 @@ CheckTAPComponents()
       fi
     done
     my_tapdir=${TAPDIR}
-    my_tapdirfound="1"
+    my_tapdir_found="1"
   else
     return 1
   fi
@@ -496,11 +555,10 @@ AC_MSG_CHECKING([for TAP support])
 AC_ARG_WITH(tap,
   [  --with-tap=DIR          Use TAP with includes and libs from [DIR]/include and [DIR]/lib],
   [
-    my_tapdirspecified="1"
+    my_tapdir_specified="1"
     CheckTAPComponents "${withval}"
   ],
   [
-    my_tapdirspecified="0"
     for my_basedir in ${LIB_LIST} ; do
       for my_dir in "${my_basedir}" "${my_basedir}/tap" ; do
         CheckTAPComponents "${my_dir}" && break 2
@@ -508,7 +566,7 @@ AC_ARG_WITH(tap,
     done
   ]
 )
-if test ${my_tapdirfound} -eq 1 ; then
+if test ${my_tapdir_found} -eq 1 ; then
   AC_MSG_RESULT([${my_tapdir}])
   tap_cflags="-I${my_tapdir}/include"
   tap_ldadd="-ltap"
@@ -548,7 +606,7 @@ int main() { close(1); plan_tests(1); diag("test"); ok(1 == 1, "1 == 1"); return
   LIBS=${OLD_LIBS}
   export LD_LIBRARY_PATH=${OLD_LD_LIBRARY_PATH}
 else
-  if test ${my_tapdirspecified} -eq 1 ; then
+  if test ${my_tapdir_specified} -eq 1 ; then
     AC_MSG_RESULT([missing, incomplete, or incorrect])
     echo
     echo "Unable to locate required TAP components. Use --with-tap=DIR to"

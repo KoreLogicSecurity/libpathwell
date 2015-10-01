@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwSDirname.c,v 1.1 2013/10/29 23:13:38 klm Exp $
+ * $Id: api_PwSDirname.c,v 1.1.2.4 2015/09/30 16:05:55 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -15,6 +15,9 @@
  *
  ***********************************************************************
  */
+#if defined(HAVE_CONFIG_H)
+#include "config.h"
+#endif
 #include <errno.h>
 #include <inttypes.h>
 #include <pathwell.h>
@@ -114,9 +117,95 @@ main(int iArgumentCount, char *ppcArgumentVector[])
     { "//abc//123/",   "//abc" },
     { "//abc//123//",  "//abc" },
     { "//abc//123///", "//abc" },
-  };
 
+#ifdef WIN32
+    { ":",                       "." }, /* FIXME What should the expected value be here? */
+    { ":/",                      "." }, /* FIXME What should the expected value be here? */
+    { "://",                     "." }, /* FIXME What should the expected value be here? */
+    { ":///",                    "." }, /* FIXME What should the expected value be here? */
+
+    { "::",                      "." }, /* FIXME What should the expected value be here? */
+    { "::/",                     "." }, /* FIXME What should the expected value be here? */
+    { ":://",                    "." }, /* FIXME What should the expected value be here? */
+    { "::///",                   "." }, /* FIXME What should the expected value be here? */
+
+    { ":::",                     "." }, /* FIXME What should the expected value be here? */
+    { ":::/",                    "." }, /* FIXME What should the expected value be here? */
+    { "::://",                   "." }, /* FIXME What should the expected value be here? */
+    { ":::///",                  "." }, /* FIXME What should the expected value be here? */
+
+    { "c:",                    "c:/" }, /* FIXME What should the expected value be here? */
+    { "c:/",                   "c:/" },
+    { "c://",                  "c:/" },
+    { "c:///",                 "c:/" },
+ 
+    { "c::",                   "c:/" }, /* FIXME What should the expected value be here? */
+    { "c::/",                  "c:/" }, /* FIXME What should the expected value be here? */
+    { "c:://",                 "c:/" }, /* FIXME What should the expected value be here? */
+    { "c::///",                "c:/" }, /* FIXME What should the expected value be here? */
+ 
+    { "c:::",                  "c:/" }, /* FIXME What should the expected value be here? */
+    { "c:::/",                 "c:/" }, /* FIXME What should the expected value be here? */
+    { "c::://",                "c:/" }, /* FIXME What should the expected value be here? */
+    { "c:::///",               "c:/" }, /* FIXME What should the expected value be here? */
+ 
+    { "c:abc",                 "c:/" }, /* FIXME What should the expected value be here? */
+    { "c:abc/",                "c:/" }, /* FIXME What should the expected value be here? */
+    { "c:abc//",               "c:/" }, /* FIXME What should the expected value be here? */
+    { "c:abc///",              "c:/" }, /* FIXME What should the expected value be here? */
+ 
+    { "c:/abc",                "c:/" },
+    { "c:/abc/",               "c:/" },
+    { "c:/abc//",              "c:/" },
+    { "c:/abc///",             "c:/" },
+ 
+    { "c://abc",               "c:/" },
+    { "c://abc/",              "c:/" },
+    { "c://abc//",             "c:/" },
+    { "c://abc///",            "c:/" },
+ 
+    { "c:///abc",              "c:/" },
+    { "c:///abc/",             "c:/" },
+    { "c:///abc//",            "c:/" },
+    { "c:///abc///",           "c:/" },
+ 
+    { "c:/abc/123",         "c:/abc" },
+    { "c:/abc/123/",        "c:/abc" },
+    { "c:/abc/123//",       "c:/abc" },
+    { "c:/abc/123///",      "c:/abc" },
+ 
+    { "c://abc/123",       "c://abc" },
+    { "c://abc/123/",      "c://abc" },
+    { "c://abc/123//",     "c://abc" },
+    { "c://abc/123///",    "c://abc" },
+ 
+    { "c:///abc/123",     "c:///abc" },
+    { "c:///abc/123/",    "c:///abc" },
+    { "c:///abc/123//",   "c:///abc" },
+    { "c:///abc/123///",  "c:///abc" },
+ 
+    { "c:/abc//123",        "c:/abc" },
+    { "c:/abc//123/",       "c:/abc" },
+    { "c:/abc//123//",      "c:/abc" },
+    { "c:/abc//123///",     "c:/abc" },
+ 
+    { "c://abc//123",      "c://abc" },
+    { "c://abc//123/",     "c://abc" },
+    { "c://abc//123//",    "c://abc" },
+    { "c://abc//123///",   "c://abc" },
+ 
+    { "c:///abc//123",    "c:///abc" },
+    { "c:///abc//123/",   "c:///abc" },
+    { "c:///abc//123//",  "c:///abc" },
+    { "c:///abc//123///", "c:///abc" },
+#endif
+};
+
+#ifdef WIN32
+  plan_tests(125);
+#else
   plan_tests(61);
+#endif
 
   for (iIndex = 0; iIndex < (sizeof(asTuples) / sizeof(asTuples[0])); iIndex++)
   {
@@ -135,7 +224,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
         asTuples[iIndex].acOutput,
         pcDirectory
       );
-      ok(strcmp(asTuples[iIndex].acOutput, pcDirectory) == 0, acDescription);
+      ok(strcmp(asTuples[iIndex].acOutput, pcDirectory) == 0, "%s", acDescription);
       free(pcDirectory);
     }
     else
@@ -149,7 +238,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
         asTuples[iIndex].acOutput,
         (pcDirectory == NULL) ? "undef" : pcDirectory
       );
-      ok(pcDirectory == NULL && strcmp(asTuples[iIndex].acOutput, "undef") == 0, acDescription);
+      ok(pcDirectory == NULL && strcmp(asTuples[iIndex].acOutput, "undef") == 0, "%s", acDescription);
     }
   }
 

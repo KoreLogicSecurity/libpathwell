@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwTTopologyToId.c,v 1.16 2013/11/04 15:19:35 klm Exp $
+ * $Id: api_PwTTopologyToId.c,v 1.16.2.4 2015/09/30 17:54:51 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -15,10 +15,14 @@
  *
  ***********************************************************************
  */
+#if defined(HAVE_CONFIG_H)
+#include "config.h"
+#endif
 #include <inttypes.h>
 #include <pathwell.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <tap.h>
 
 typedef struct _TEST_TUPLES
@@ -300,16 +304,16 @@ main(int iArgumentCount, char *ppcArgumentVector[])
   plan_tests(243);
 
   psPwTContext = PwTNewContext();
-  ok(psPwTContext != NULL, "new context");
+  ok(psPwTContext != NULL, "%s", "new context");
 
   for (iIndex = 0; iIndex < (sizeof(asTuples) / sizeof(asTuples[0])); iIndex++)
   {
     iError = PwTSetTopology(psPwTContext, asTuples[iIndex].acTopology);
-//  ok(iError == 0, "set topology");
+//  ok(iError == 0, "%s", "set topology");
     iError = PwTSetTokenSet(psPwTContext, asTuples[iIndex].ui32TokenSet);
-//  ok(iError == 0, "set token set");
+//  ok(iError == 0, "%s", "set token set");
     iError = PwTSetEncoding(psPwTContext, ((strcmp(asTuples[iIndex].acType, "bitmask") == 0) ? PATHWELL_ENCODING_BITMASK : PATHWELL_ENCODING_BASENP1));
-//  ok(iError == 0, "set encoding");
+//  ok(iError == 0, "%s", "set encoding");
     iError = PwTTopologyToId(psPwTContext);
     if (iError == ER_OK)
     {
@@ -324,7 +328,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
         asTuples[iIndex].i64Id,
         *psPwTContext->pi64Id
       );
-      ok(*psPwTContext->pi64Id == asTuples[iIndex].i64Id, acDescription);
+      ok(*psPwTContext->pi64Id == asTuples[iIndex].i64Id, "%s", acDescription);
     }
     else
     {
@@ -339,7 +343,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
         asTuples[iIndex].acError,
         PwTGetError(psPwTContext)
       );
-      ok(strcmp(PwTGetError(psPwTContext), asTuples[iIndex].acError) == 0, acDescription);
+      ok(strcmp(PwTGetError(psPwTContext), asTuples[iIndex].acError) == 0, "%s", acDescription);
     }
   }
   PwTFreeContext(psPwTContext);

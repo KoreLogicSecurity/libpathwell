@@ -1,11 +1,11 @@
 #!/bin/bash
 ######################################################################
 #
-# $Id: export-db,v 1.6 2013/10/29 09:22:02 hlein Exp $
+# $Id: export-db,v 1.6.2.1 2015/09/30 16:05:53 klm Exp $
 #
 ######################################################################
 #
-# Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+# Copyright 2013-2015 The PathWell Project, All Rights Reserved.
 #
 # This software, having been partly or wholly developed and/or
 # sponsored by KoreLogic, Inc., is hereby released under the terms

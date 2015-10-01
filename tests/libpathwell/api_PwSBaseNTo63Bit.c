@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwSBaseNTo63Bit.c,v 1.6 2013/09/10 14:47:58 klm Exp $
+ * $Id: api_PwSBaseNTo63Bit.c,v 1.6.2.6 2015/09/30 18:37:36 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -15,11 +15,16 @@
  *
  ***********************************************************************
  */
+#if defined(HAVE_CONFIG_H)
+#include "config.h"
+#endif
 #include <gmp.h>
 #include <inttypes.h>
 #include <pathwell.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include <tap.h>
 
 int64_t gi64Value = 0;
@@ -102,7 +107,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
     iPwSStatus = PwSBaseNTo63Bit(asTuples[iIndex].pcValue, asTuples[iIndex].pi64Value, asTuples[iIndex].iBase);
     if (gi64Value == -55)
     {
-      snprintf(acPwSString, 64, "undef", sizeof("undef"));
+      snprintf(acPwSString, 64, "undef");
     }
     else
     {
@@ -129,6 +134,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
         (
           (pcMpzString != NULL && strcmp(pcMpzString, acPwSString) == 0) || (asTuples[iIndex].pcValue == NULL && pcMpzString == NULL)
         ),
+        "%s",
         acDescription
       );
     }
@@ -138,6 +144,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
       (
            iMpzStatus == asTuples[iIndex].iMpzStatus
         && iPwSStatus == asTuples[iIndex].iPwSStatus,
+        "%s",
         acDescription
       );
     }

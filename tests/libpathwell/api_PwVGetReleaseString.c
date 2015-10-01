@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwVGetReleaseString.c,v 1.2 2013/08/16 01:10:04 klm Exp $
+ * $Id: api_PwVGetReleaseString.c,v 1.2.2.4 2015/09/30 17:54:51 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -15,8 +15,12 @@
  *
  ***********************************************************************
  */
+#if defined(HAVE_CONFIG_H)
+#include "config.h"
+#endif
 #include <pathwell.h>
 #include <stdio.h>
+#include <string.h>
 #include <tap.h>
 
 int
@@ -26,7 +30,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
 
   plan_tests(1);
   pcRelease = PwVGetReleaseString();
-  ok(iArgumentCount == 2 && strcmp(pcRelease, ppcArgumentVector[1]) == 0, "release string");
+  ok(iArgumentCount == 2 && strcmp(pcRelease, ppcArgumentVector[1]) == 0, "%s", "release string");
 
   return exit_status();
 }

@@ -1,11 +1,14 @@
+#!/bin/sh
 #!/usr/bin/perl -w
+eval 'exec perl -x ${0} ${1+"${@}"} ;'
+  if (0);
 ######################################################################
 #
-# $Id: test.t,v 1.10 2013/09/09 16:00:52 klm Exp $
+# $Id: test.t,v 1.10.2.5 2015/09/30 16:05:55 klm Exp $
 #
 ######################################################################
 #
-# Copyright 2013-2013 KoreLogic Inc., All Rights Reserved.
+# Copyright 2013-2015 The PathWell Project, All Rights Reserved.
 #
 # This software, having been partly or wholly developed and/or
 # sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -25,7 +28,43 @@ use Test::More 0.045;
 
 BEGIN
 {
-  plan('tests' => GetTestCount());
+  ####################################################################
+  #
+  # The Properties hash is essentially private. Those parts of the
+  # program that wish to access or modify the data in this hash need
+  # to call GetProperties() to obtain a reference.
+  #
+  ####################################################################
+
+  my (%hProperties);
+
+  ####################################################################
+  #
+  # Initialize platform-specific variables.
+  #
+  ####################################################################
+
+  if ($^O =~ /MSWin(32|64)/i)
+  {
+    $hProperties{'OsClass'} = "WINX";
+    $hProperties{'Extension'} = ".exe";
+  }
+  else
+  {
+    $hProperties{'OsClass'} = "UNIX";
+    $hProperties{'Extension'} = "";
+  }
+
+  ####################################################################
+  #
+  # Define helper routines.
+  #
+  ####################################################################
+
+  sub GetProperties
+  {
+    return \%hProperties;
+  }
 
   sub GetTestCount
   {
@@ -38,6 +77,14 @@ BEGIN
     close(FH);
     return $sCount;
   }
+
+  ####################################################################
+  #
+  # Create a test plan.
+  #
+  ####################################################################
+
+  plan('tests' => GetTestCount());
 }
 
 ######################################################################
@@ -72,12 +119,14 @@ sub VerifyExitStatus
 
   my @aOutput = ();
   my $sActualStatus = 0;
-  my $sCommand = "../../src/topology2id/pathwell-topology2id";
+  my $sCommand = "../../src/topology2id/pathwell-topology2id" . GetProperties()->{'Extension'};
   my $sCommandLine = "";
   my $sErrFile = "test.t.stderr";
   my $sMatch = 0;
   my $sOutFile = "test.t.stdout";
   my $sSrcDir = $ENV{'srcdir'} || ".";
+
+  $sCommand =~ s,/,\\,g if (GetProperties()->{'OsClass'} eq "WINX");
 
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -127,13 +176,13 @@ Test other conversions.
 
   my @aTuples =
   (
-    ["echo ''", "-f -", "Topology=''; ID='undef'; Error='Topology contains one or more tokens not from the specified token set.';"],
-    ["echo '?z'", "-f -", "Topology='?z'; ID='0';"],
-    ["echo '?u?l?l?l?l?d'", "-f - -t bitmask", "Topology='?u?l?l?l?l?d'; ID='158036';"],
-    ["echo '?s?s?s'", "-f -", "Topology='?s?s?s'; ID='124';"],
-    ["echo '?H?x'", "-f - -s 4", "Topology='?H?x'; ID='62';"],
-    ["echo '?H?H?H?H'", "-f - -t bitmask -s 4", "Topology='?H?H?H?H'; ID='150966';"],
-    ["echo '?s?s?s'", "-f - -s 3 -t baseN+1", "Topology='?s?s?s'; ID='228';"],
+    ["$^X -e 'print qq(\\n);'", "-f -", "Topology=''; ID='undef'; Error='Topology contains one or more tokens not from the specified token set.';"],
+    ["$^X -e 'print qq(?z\\n);'", "-f -", "Topology='?z'; ID='0';"],
+    ["$^X -e 'print qq(?u?l?l?l?l?d\\n);'", "-f - -t bitmask", "Topology='?u?l?l?l?l?d'; ID='158036';"],
+    ["$^X -e 'print qq(?s?s?s\\n);'", "-f -", "Topology='?s?s?s'; ID='124';"],
+    ["$^X -e 'print qq(?H?x\\n);'", "-f - -s 4", "Topology='?H?x'; ID='62';"],
+    ["$^X -e 'print qq(?H?H?H?H\\n);'", "-f - -t bitmask -s 4", "Topology='?H?H?H?H'; ID='150966';"],
+    ["$^X -e 'print qq(?s?s?s\\n);'", "-f - -s 3 -t baseN+1", "Topology='?s?s?s'; ID='228';"],
 
     ["", "''", "Topology=''; ID='undef'; Error='Topology contains one or more tokens not from the specified token set.';"],
     ["", "'?z'", "Topology='?z'; ID='0';"],
@@ -153,11 +202,13 @@ Test other conversions.
     if ($sArgs1 ne "")
     {
       $sArgs1 =~ s/ *$/ | /g;
+      $sArgs1 =~ s/'/"/g if (GetProperties()->{'OsClass'} eq "WINX");
     }
 
     $sArgs2 = @{$paArguments}[1];
     $sArgs2 =~ s/^ */ /g;
     $sArgs2 =~ s/ +$//g;
+    $sArgs2 =~ s/'/"/g if (GetProperties()->{'OsClass'} eq "WINX");
 
     $sCommandLine = $sArgs1 . $sCommand . $sArgs2;
 

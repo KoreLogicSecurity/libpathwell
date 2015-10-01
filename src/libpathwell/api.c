@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api.c,v 1.243 2013/11/05 01:57:27 klm Exp $
+ * $Id: api.c,v 1.243.2.6 2015/09/30 19:11:21 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -24,6 +24,9 @@
  *
  ***********************************************************************
  */
+static char const *gpcContextAllocationError = "context allocation error";
+static char const *gpcRealErrorLostNullFormat = "real error lost due to a format error";
+static char const *gpcRealErrorLostNullMalloc = "real error lost due to a memory error";
 static int giPwDLibraryReferenceCount = 0;
 static PW_D_CANNED_SQL gasCannedSql[] =
 {
@@ -363,7 +366,7 @@ PwDAcquireConnection(PW_D_CONTEXT *psPwDContext)
    */
   if (!PwDDbFileExists(psPwDContext->pcDbFile))
   {
-    if (psPwDContext->iDbFileFlags & SQLITE_OPEN_CREATE != SQLITE_OPEN_CREATE)
+    if ((psPwDContext->iDbFileFlags & SQLITE_OPEN_CREATE) != SQLITE_OPEN_CREATE)
     {
       PwDSetError(psPwDContext, "The SQLITE_OPEN_CREATE flag must be set when acquiring a DB connection for a DB that does not yet exist.", NULL);
       return ER;
@@ -386,6 +389,9 @@ PwDAcquireConnection(PW_D_CONTEXT *psPwDContext)
   }
   psPwDContext->psDbHandle = psDbHandle;
 
+#ifdef WIN32
+  /* Empty */
+#else
   /*-
    *********************************************************************
    *
@@ -404,6 +410,7 @@ PwDAcquireConnection(PW_D_CONTEXT *psPwDContext)
       /* Empty */
     }
   }
+#endif
 
   /*-
    *********************************************************************
@@ -2372,7 +2379,7 @@ PwDGetUseCount(PW_D_CONTEXT *psPwDContext, PW_T_CONTEXT *psPwTContext)
   {
     if (puiValue == NULL) // Memory to hold the value should be allocated once rather than once per row.
     {
-      puiValue = (int *)malloc(sizeof(int));
+      puiValue = (unsigned int *)malloc(sizeof(int));
       if (puiValue == NULL)
       {
         PwDSetError(psPwDContext, "Failed to allocate memory (%s).", strerror(errno), NULL);
@@ -3408,11 +3415,15 @@ PwDSetUseCount(PW_D_CONTEXT *psPwDContext, PW_T_CONTEXT *psPwTContext, unsigned 
    *
    *********************************************************************
    */
-  if (uiUseCount < 0)
-  {
-    PwDSetError(psPwDContext, "New use count: (%" PRId64 ") must be greater than or equal to 0.", uiUseCount, NULL);
-    return ER;
-  }
+//FIXME Since uiUseCount is unsigned, it will never be less than zero.
+//      Some compilers will complain about this being an autological
+//      comparison, so the code has been commented out, but retained
+//      as a reminder in case use counts ever become signed integers.
+//if (uiUseCount < 0)
+//{
+//  PwDSetError(psPwDContext, "New use count: (%" PRId64 ") must be greater than or equal to 0.", uiUseCount, NULL);
+//  return ER;
+//}
   PATHWELL_ASSERT(uiUseCount >= 0);
 
   /*-
@@ -4745,7 +4756,7 @@ PwTBitmaskIdToTopology(PW_T_CONTEXT *psPwTContext)
   i64Id = PwTGetId(psPwTContext);
   for (iNumShifts = 0; iNumShifts < 63-6; iNumShifts++)
   {
-    if (1 == ((uint64_t)(i64Id << iNumShifts) >> 63) & 0x1) // Found the high bit.
+    if ((((uint64_t)(i64Id << iNumShifts) >> 63) & 0x1) == 1) // Found the high bit.
     {
       uiTopologyLength = ((uint64_t)i64Id >> (63 - 6 - iNumShifts + 1)) & 0b11111; // Read the length of the topology from the fields index [1-5].
       break;

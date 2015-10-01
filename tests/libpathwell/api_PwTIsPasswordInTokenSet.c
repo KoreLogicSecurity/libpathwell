@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwTIsPasswordInTokenSet.c,v 1.2 2013/08/30 21:11:11 klm Exp $
+ * $Id: api_PwTIsPasswordInTokenSet.c,v 1.2.2.4 2015/09/30 17:54:51 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -15,10 +15,14 @@
  *
  ***********************************************************************
  */
+#if defined(HAVE_CONFIG_H)
+#include "config.h"
+#endif
 #include <inttypes.h>
 #include <pathwell.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <tap.h>
 
 typedef struct _TEST_TUPLES
@@ -170,14 +174,14 @@ main(int iArgumentCount, char *ppcArgumentVector[])
   plan_tests(1046);
 
   psPwTContext = PwTNewContext();
-  ok(psPwTContext != NULL, "new context");
+  ok(psPwTContext != NULL, "%s", "new context");
 
   for (iIndex = 0; iIndex < (sizeof(asTuples) / sizeof(asTuples[0])); iIndex++)
   {
     iError = PwTSetPassword(psPwTContext, strcmp(asTuples[iIndex].acPassword, "undef") ? asTuples[iIndex].acPassword : NULL);
-//  ok(iError == 0, "set topology");
+//  ok(iError == 0, "%s", "set topology");
     iError = PwTSetTokenSet(psPwTContext, asTuples[iIndex].iTokenSet);
-//  ok(iError == 0, "set token set");
+//  ok(iError == 0, "%s", "set token set");
     iStatus = PwTIsPasswordInTokenSet(psPwTContext);
     if (iStatus == PATHWELL_INDETERMINATE)
     {
@@ -191,7 +195,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
         asTuples[iIndex].acError,
         PwTGetError(psPwTContext)
       );
-      ok(strcmp(PwTGetError(psPwTContext), asTuples[iIndex].acError) == 0, acDescription);
+      ok(strcmp(PwTGetError(psPwTContext), asTuples[iIndex].acError) == 0, "%s", acDescription);
     }
     else
     {
@@ -205,7 +209,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
         asTuples[iIndex].iStatus,
         iStatus
       );
-      ok(iStatus == asTuples[iIndex].iStatus, acDescription);
+      ok(iStatus == asTuples[iIndex].iStatus, "%s", acDescription);
     }
   }
 
@@ -230,9 +234,9 @@ main(int iArgumentCount, char *ppcArgumentVector[])
     {
       char acPassword[2] = { iIndex, 0 };
       iError = PwTSetPassword(psPwTContext, acPassword);
-//    ok(iError == 0, "set topology");
+//    ok(iError == 0, "%s", "set topology");
       iError = PwTSetTokenSet(psPwTContext, iTokenSet);
-//    ok(iError == 0, "set token set");
+//    ok(iError == 0, "%s", "set token set");
       iStatus = PwTIsPasswordInTokenSet(psPwTContext);
       if (iStatus == PATHWELL_INDETERMINATE)
       {
@@ -246,7 +250,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
           pucTokenSet[iIndex],
           PwTGetError(psPwTContext)
         );
-        ok(0, acDescription);
+        ok(0, "%s", acDescription);
       }
       else
       {
@@ -260,7 +264,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
           pucTokenSet[iIndex],
           iStatus
         );
-        ok(iStatus == pucTokenSet[iIndex], acDescription);
+        ok(iStatus == pucTokenSet[iIndex], "%s", acDescription);
       }
     }
   }

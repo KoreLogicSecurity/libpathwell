@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: support.c,v 1.25 2013/11/01 14:43:31 klm Exp $
+ * $Id: support.c,v 1.25.2.11 2015/09/30 16:05:53 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -270,7 +270,7 @@ PwSCreateDirectory(char *pcPath, mode_t tMode)
   errno = 0;
   if (pcPath == NULL)
   {
-    errno = ENODATA;
+    errno = EINVAL;
     goto PW_S_CLEANUP;
   }
   pcDirectory = pcPath;
@@ -303,7 +303,20 @@ PwSCreateDirectory(char *pcPath, mode_t tMode)
       goto PW_S_CLEANUP; // Note: Error number already set.
     }
     ppcDirectories[iCount++] = pcDirectory;
-    if (strcmp(pcDirectory, ".") == 0 || strcmp(pcDirectory, "/") == 0)
+    if
+    (
+      strcmp(pcDirectory, PATHWELL_DOT_S) == 0
+      || strcmp(pcDirectory, PATHWELL_SLASH_S) == 0
+#ifdef WIN32
+      ||
+      (
+        isalpha(pcDirectory[0])
+        && pcDirectory[1] == PATHWELL_COLON_C
+        && pcDirectory[2] == PATHWELL_SLASH_C
+        && pcDirectory[3] == 0
+      )
+#endif
+    )
     {
       break; // We've found the root.
     }
@@ -327,7 +340,11 @@ PwSCreateDirectory(char *pcPath, mode_t tMode)
   {
     if (!PwDDbDirectoryExists(ppcDirectories[iIndex])) // Note: If this fails, errno will be set.
     {
+#ifdef WIN32
+      iError = mkdir(ppcDirectories[iIndex]);
+#else
       iError = mkdir(ppcDirectories[iIndex], tMode);
+#endif
       if (iError == -1)
       {
         goto PW_S_CLEANUP; // Note: Error number already set.
@@ -368,30 +385,40 @@ PW_S_CLEANUP:
 char *
 PwSDirname(char *pcPath)
 {
-  char *pcDirectory = NULL;
+  char *pcDirname = NULL;
+  int iIndex1 = 0;
+  int iIndex2 = 0;
   int iLength = 0;
-  int iIndex = 0;
+  int iSize = 0;
 
   /*-
    *********************************************************************
    *
-   * Make sure the input is valid.
+   * Set errno and return NULL for NULL paths.
    *
    *********************************************************************
    */
   errno = 0;
   if (pcPath == NULL)
   {
-    errno = ENODATA;
+    errno = EINVAL;
     return NULL;
   }
-  iLength = strlen(pcPath);
+
+  /*-
+   *********************************************************************
+   *
+   * Set errno and return NULL for paths that are too long.
+   *
+   *********************************************************************
+   */
+  iLength = iIndex1 = strlen(pcPath);
   if (iLength > FILENAME_MAX - 1)
   {
     errno = ENAMETOOLONG;
     return NULL;
   }
-  iIndex = iLength - 1;
+  iIndex1--;
 
   /*-
    *********************************************************************
@@ -400,10 +427,24 @@ PwSDirname(char *pcPath)
    *
    *********************************************************************
    */
-  pcDirectory = malloc(sizeof(char) * FILENAME_MAX);
-  if (pcDirectory == NULL)
+  iSize = ((iLength == 0) ? 1 : iLength) + 1;
+  pcDirname = calloc(iSize, sizeof(char));
+  if (pcDirname == NULL)
   {
     return NULL; // Note: Error number already set.
+  }
+
+  /*-
+   *********************************************************************
+   *
+   * Return "." for empty paths.
+   *
+   *********************************************************************
+   */
+  if (iLength == 0)
+  {
+    pcDirname[0] = PATHWELL_DOT_C;
+    return pcDirname;
   }
 
   /*-
@@ -413,9 +454,9 @@ PwSDirname(char *pcPath)
    *
    *********************************************************************
    */
-  while (iIndex > 0 && pcPath[iIndex] == '/')
+  while (iIndex1 > 0 && pcPath[iIndex1] == PATHWELL_SLASH_C)
   {
-    iIndex--;
+    iIndex1--;
   }
 
   /*-
@@ -425,43 +466,66 @@ PwSDirname(char *pcPath)
    *
    *********************************************************************
    */
-  while (iIndex > 0 && pcPath[iIndex] != '/')
+  while (iIndex1 > 0 && pcPath[iIndex1] != PATHWELL_SLASH_C)
   {
-    iIndex--;
+    iIndex1--;
   }
 
   /*-
    *********************************************************************
    *
-   * Back up over trailing slashes or until nothing is left.
+   * Return "." if the index is zero and the path does not start with
+   * a drive letter or a slash. Otherwise, return the drive letter or
+   * slash. If the index is greater than zero, keep backing up until
+   * there are no more trailing slashes.
    *
    *********************************************************************
    */
-  while (iIndex > 0 && pcPath[iIndex] == '/')
+  if (iIndex1 == 0)
   {
-    iIndex--;
-  }
-
-  /*-
-   *********************************************************************
-   *
-   * Conditionally return "." or anything that remains.
-   *
-   *********************************************************************
-   */
-  if (iIndex < 0 || (iIndex == 0 && pcPath[iIndex] != '/'))
-  {
-    iLength = 1;
-    strncpy(pcDirectory, ".", iLength);
+#ifdef WIN32
+    if (iLength >= 2 && isalpha(pcPath[0]) && pcPath[1] == PATHWELL_COLON_C)
+    {
+      pcDirname[iIndex2++] = pcPath[0];
+      pcDirname[iIndex2++] = pcPath[1];
+      pcDirname[iIndex2++] = PATHWELL_SLASH_C;
+    }
+    else
+#endif
+    if (pcPath[iIndex1] == PATHWELL_SLASH_C)
+    {
+      pcDirname[iIndex2++] = PATHWELL_SLASH_C;
+    }
+    else
+    {
+      pcDirname[iIndex2++] = PATHWELL_DOT_C;
+    }
+    pcDirname[iIndex2] = 0;
+    return pcDirname;
   }
   else
   {
-    iLength = iIndex + 1;
-    strncpy(pcDirectory, pcPath, iLength);
+    while (--iIndex1 > 0 && pcPath[iIndex1] == PATHWELL_SLASH_C);
   }
-  pcDirectory[iLength] = 0;
+  iLength = iIndex1 + 1;
 
-  return pcDirectory;
+  /*-
+   *********************************************************************
+   *
+   * Return anything that's left.
+   *
+   *********************************************************************
+   */
+  strncpy(pcDirname, pcPath, iLength);
+#ifdef WIN32
+  if (iLength == 2 && isalpha(pcPath[0]) && pcPath[1] == PATHWELL_COLON_C)
+  {
+    pcDirname[iLength++] = PATHWELL_SLASH_C;
+  }
+#endif
+  pcDirname[iLength] = 0;
+
+  return pcDirname;
 }
 
 
@@ -505,7 +569,7 @@ PwSLevenshteinDistance(char *pcStringA, char *pcStringB)
   {
     for (iIndexA = 1; iIndexA <= iLengthA; iIndexA++)
     {
-      iCost = (pcStringA[iIndexB - 1] == pcStringB[iIndexA - 1]) ? 0 : 1; // There's no edit cost when they're the same.
+      iCost = (pcStringA[iIndexA - 1] == pcStringB[iIndexB - 1]) ? 0 : 1; // There's no edit cost when they're the same.
       aaiMatrix[iIndexA][iIndexB] = PwSMin3
       (
         aaiMatrix[iIndexA - 1][iIndexB    ] + 1,    // Remove

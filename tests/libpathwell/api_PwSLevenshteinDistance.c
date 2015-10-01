@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwSLevenshteinDistance.c,v 1.1 2013/11/01 15:24:45 klm Exp $
+ * $Id: api_PwSLevenshteinDistance.c,v 1.1.2.5 2015/09/30 17:54:51 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -15,8 +15,12 @@
  *
  ***********************************************************************
  */
+#if defined(HAVE_CONFIG_H)
+#include "config.h"
+#endif
 #include <pathwell.h>
 #include <stdio.h>
+#include <string.h>
 #include <tap.h>
 
 typedef struct _TEST_TUPLES
@@ -80,21 +84,27 @@ main(int iArgumentCount, char *ppcArgumentVector[])
     {        "bba",        "aaa",  2 },
     {        "bab",        "aaa",  2 },
     {        "abb",        "aaa",  2 },
-    {        "aaa",       "1aaa",  2 },
-    {        "aaa",       "a1aa",  2 },
-    {        "aaa",       "aa1a",  2 },
+    {        "aaa",       "1aaa",  1 },
+    {        "aaa",       "a1aa",  1 },
+    {        "aaa",       "aa1a",  1 },
     {        "aaa",       "aaa1",  1 },
-    {        "aaa",      "11aaa",  4 },
-    {        "aaa",      "a11aa",  4 },
-    {        "aaa",      "aa11a",  3 },
+    {        "aaa",      "11aaa",  2 },
+    {        "aaa",      "a11aa",  2 },
+    {        "aaa",      "aa11a",  2 },
     {        "aaa",      "aaa11",  2 },
-    {        "aaa",     "111aaa",  6 },
-    {        "aaa",     "a111aa",  5 },
-    {        "aaa",     "aa111a",  4 },
+    {        "aaa",     "111aaa",  3 },
+    {        "aaa",     "a111aa",  3 },
+    {        "aaa",     "aa111a",  3 },
     {        "aaa",     "aaa111",  3 },
+    {        "aaa",     "1a11aa",  3 },
+    {        "aaa",     "1aa11a",  3 },
+    {        "aaa",     "1aaa11",  3 },
+    {        "aaa",     "1a1a1a",  3 },
+    {        "aaa",     "a1a1a1",  3 },
+    {     "Sunday",   "Saturday",  3 },
   };
 
-  plan_tests(58);
+  plan_tests(64);
 
   for (iIndex = 0; iIndex < (sizeof(asTuples) / sizeof(asTuples[0])); iIndex++)
   {
@@ -113,7 +123,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
       asTuples[iIndex].iDistance,
       iDistance
     );
-    ok(iDistance == asTuples[iIndex].iDistance, acDescription);
+    ok(iDistance == asTuples[iIndex].iDistance, "%s", acDescription);
   }
 
   return exit_status();

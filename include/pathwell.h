@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: pathwell.h,v 1.107 2013/11/04 15:05:09 klm Exp $
+ * $Id: pathwell.h,v 1.107.2.5 2015/09/30 16:05:53 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -17,6 +17,10 @@
  */
 #ifndef _PATHWELL_H_INCLUDED
 #define _PATHWELL_H_INCLUDED
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef PATHWELL_DEBUG
   #include <assert.h>
@@ -38,6 +42,10 @@
 #include <sqlite3.h>
 #include <stddef.h>
 #include <sys/types.h> // Note: This was added for mode_t.
+
+#if defined(WIN32) && !defined(_MODE_T_) // Note: This is here for Visual Studio. MinGW defines _MODE_T_.
+  typedef unsigned short mode_t;
+#endif
 
 /*-
  ***********************************************************************
@@ -93,6 +101,13 @@
 #define PW_S_CHOMP_RIGHT 2
 #define PW_S_CHOMP_BOTH 3
 
+#define PATHWELL_COLON_C ':'
+#define PATHWELL_COLON_S ":"
+#define PATHWELL_DOT_C '.'
+#define PATHWELL_DOT_S "."
+#define PATHWELL_SLASH_S "/"
+#define PATHWELL_SLASH_C '/'
+
 /*-
  ***********************************************************************
  *
@@ -141,17 +156,6 @@ typedef struct _PW_L_CONTEXT // This typedef must follow the one for PW_T_CONTEX
   PW_T_CONTEXT       *psPwTContextA;
   PW_T_CONTEXT       *psPwTContextB;
 } PW_L_CONTEXT;
-
-/*-
- ***********************************************************************
- *
- * Error strings
- *
- ***********************************************************************
- */
-static char const *gpcContextAllocationError = "context allocation error";
-static char const *gpcRealErrorLostNullFormat = "real error lost due to a format error";
-static char const *gpcRealErrorLostNullMalloc = "real error lost due to a memory error";
 
 /*-
  ***********************************************************************
@@ -329,5 +333,9 @@ int                 PwVGetReleaseMinor(void);
 uint32_t            PwVGetReleaseNumber(void);
 int                 PwVGetReleasePatch(void);
 const char         *PwVGetReleaseString(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !_PATHWELL_H_INCLUDED */

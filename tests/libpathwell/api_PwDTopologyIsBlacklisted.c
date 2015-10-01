@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwDTopologyIsBlacklisted.c,v 1.1 2013/11/05 02:14:34 klm Exp $
+ * $Id: api_PwDTopologyIsBlacklisted.c,v 1.1.2.4 2015/09/30 17:54:50 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -15,9 +15,13 @@
  *
  ***********************************************************************
  */
+#if defined(HAVE_CONFIG_H)
+#include "config.h"
+#endif
 #include <pathwell.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <tap.h>
 
 typedef struct _TEST_TUPLES
@@ -65,31 +69,31 @@ main(int iArgumentCount, char *ppcArgumentVector[])
   plan_tests(28);
 
   psPwDContext = PwDNewContextFromParameters(":memory:", SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL, 0);
-  ok(PwDContextIsValid(psPwDContext), "new context");
+  ok(PwDContextIsValid(psPwDContext), "%s", "new context");
   if (!PwDContextIsValid(psPwDContext))
   {
-    diag(PwDGetError(psPwDContext));
+    diag("%s", PwDGetError(psPwDContext));
   }
 
   iError = PwDAcquireConnection(psPwDContext);
-  ok(iError == 0, "acquire connection");
+  ok(iError == 0, "%s", "acquire connection");
   if (iError != ER_OK)
   {
-    diag(PwDGetError(psPwDContext));
+    diag("%s", PwDGetError(psPwDContext));
   }
 
   iError = PwDCreateSchema(psPwDContext);
-  ok(iError == 0, "create schema");
+  ok(iError == 0, "%s", "create schema");
   if (iError != ER_OK)
   {
-    diag(PwDGetError(psPwDContext));
+    diag("%s", PwDGetError(psPwDContext));
   }
 
   iError = PwDLoadBlacklistedTopologies(psPwDContext, ppcArgumentVector[1]);
-  ok(iError == 0, "load blacklisted topologies");
+  ok(iError == 0, "%s", "load blacklisted topologies");
   if (iError != ER_OK)
   {
-    diag(PwDGetError(psPwDContext));
+    diag("%s", PwDGetError(psPwDContext));
   }
 
   for (iIndex = 0; iIndex < (sizeof(asTuples) / sizeof(asTuples[0])); iIndex++)
@@ -110,7 +114,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
         asTuples[iIndex].iBlacklisted,
         iBlacklisted
       );
-      ok(iBlacklisted == asTuples[iIndex].iBlacklisted, acDescription);
+      ok(iBlacklisted == asTuples[iIndex].iBlacklisted, "%s", acDescription);
     }
     else
     {
@@ -125,15 +129,15 @@ main(int iArgumentCount, char *ppcArgumentVector[])
         asTuples[iIndex].acError,
         PwDGetError(psPwDContext)
       );
-      ok(strcmp(PwDGetError(psPwDContext), asTuples[iIndex].acError) == 0, acDescription);
+      ok(strcmp(PwDGetError(psPwDContext), asTuples[iIndex].acError) == 0, "%s", acDescription);
     }
   }
 
   iError = PwDReleaseConnection(psPwDContext);
-  ok(iError == 0, "release connection");
+  ok(iError == 0, "%s", "release connection");
   if (iError != ER_OK)
   {
-    diag(PwDGetError(psPwDContext));
+    diag("%s", PwDGetError(psPwDContext));
   }
 
   PwDFreeContext(psPwDContext);

@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwDDecrementUseCount.c,v 1.1 2013/08/23 21:13:03 klm Exp $
+ * $Id: api_PwDDecrementUseCount.c,v 1.1.2.4 2015/09/30 17:54:50 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -15,10 +15,14 @@
  *
  ***********************************************************************
  */
+#if defined(HAVE_CONFIG_H)
+#include "config.h"
+#endif
 #include <inttypes.h>
 #include <pathwell.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <tap.h>
 
 typedef struct _TEST_TUPLES
@@ -128,50 +132,50 @@ main(int iArgumentCount, char *ppcArgumentVector[])
   plan_tests(72);
 
   psPwTContext = PwTNewContext();
-//ok(psPwTContext != NULL, "new context");
+//ok(psPwTContext != NULL, "%s", "new context");
 //if (!PwTContextIsValid(psPwTContext))
 //{
-//  diag(PwTGetError(psPwTContext));
+//  diag("%s", PwTGetError(psPwTContext));
 //}
 
   psPwDContext = PwDNewContextFromParameters(":memory:", SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL, 0);
-//ok(PwDContextIsValid(psPwDContext), "new context");
+//ok(PwDContextIsValid(psPwDContext), "%s", "new context");
 //if (!PwDContextIsValid(psPwDContext))
 //{
-//  diag(PwDGetError(psPwDContext));
+//  diag("%s", PwDGetError(psPwDContext));
 //}
 
   iError = PwDAcquireConnection(psPwDContext);
-//ok(iError == 0, "acquire connection");
+//ok(iError == 0, "%s", "acquire connection");
 //if (iError != ER_OK)
 //{
-//  diag(PwDGetError(psPwDContext));
+//  diag("%s", PwDGetError(psPwDContext));
 //}
 
   iError = PwDCreateSchema(psPwDContext);
-//ok(iError == 0, "create schema");
+//ok(iError == 0, "%s", "create schema");
 //if (iError != ER_OK)
 //{
-//  diag(PwDGetError(psPwDContext));
+//  diag("%s", PwDGetError(psPwDContext));
 //}
 
   for (iIndex = 0; iIndex < (sizeof(asTuples) / sizeof(asTuples[0])); iIndex++)
   {
     iError = PwTSetId(psPwTContext, asTuples[iIndex].i64Id);
-//  ok(iError == 0, "set ID");
+//  ok(iError == 0, "%s", "set ID");
     iError = PwTSetTokenSet(psPwTContext, asTuples[iIndex].iTokenSet);
-//  ok(iError == 0, "set token set");
+//  ok(iError == 0, "%s", "set token set");
     iError = PwTSetEncoding(psPwTContext, ((strcmp(asTuples[iIndex].acType, "bitmask") == 0) ? PATHWELL_ENCODING_BITMASK : PATHWELL_ENCODING_BASENP1));
-//  ok(iError == 0, "set encoding");
+//  ok(iError == 0, "%s", "set encoding");
     iError = PwDSetUseCount(psPwDContext, psPwTContext, asTuples[iIndex].uiFirst);
-//  ok(iError == 0, "set use count");
+//  ok(iError == 0, "%s", "set use count");
     for (uiCount = 0; uiCount < asTuples[iIndex].uiCount; uiCount++)
     {
       iError = PwDDecrementUseCount(psPwDContext, psPwTContext);
-//    ok(iError == 0, "decrement use count");
+//    ok(iError == 0, "%s", "decrement use count");
 //    if (iError != ER_OK)
 //    {
-//      diag(PwDGetError(psPwDContext));
+//      diag("%s", PwDGetError(psPwDContext));
 //    }
     }
     puiFinal = PwDGetUseCount(psPwDContext, psPwTContext);
@@ -190,7 +194,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
         asTuples[iIndex].uiFinal,
         *puiFinal
       );
-      ok(*puiFinal == asTuples[iIndex].uiFinal, acDescription);
+      ok(*puiFinal == asTuples[iIndex].uiFinal, "%s", acDescription);
     }
     else
     {
@@ -207,15 +211,15 @@ main(int iArgumentCount, char *ppcArgumentVector[])
         asTuples[iIndex].uiFinal,
         PwDGetError(psPwDContext)
       );
-      ok(strcmp(PwDGetError(psPwDContext), asTuples[iIndex].acError) == 0, acDescription);
+      ok(strcmp(PwDGetError(psPwDContext), asTuples[iIndex].acError) == 0, "%s", acDescription);
     }
   }
 
   iError = PwDReleaseConnection(psPwDContext);
-//ok(iError == 0, "release connection");
+//ok(iError == 0, "%s", "release connection");
 //if (iError != ER_OK)
 //{
-//  diag(PwDGetError(psPwDContext));
+//  diag("%s", PwDGetError(psPwDContext));
 //}
 
   PwDFreeContext(psPwDContext);

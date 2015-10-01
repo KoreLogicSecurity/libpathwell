@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwVGetModuleVersion.c,v 1.1 2013/08/29 14:37:08 klm Exp $
+ * $Id: api_PwVGetModuleVersion.c,v 1.1.2.4 2015/09/30 17:54:51 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2013 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -15,8 +15,12 @@
  *
  ***********************************************************************
  */
+#if defined(HAVE_CONFIG_H)
+#include "config.h"
+#endif
 #include <pathwell.h>
 #include <stdio.h>
+#include <string.h>
 #include <tap.h>
 
 int
@@ -26,7 +30,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
 
   plan_tests(1);
   pcRelease = PwVGetModuleVersion();
-  ok(iArgumentCount == 2 && strcmp(pcRelease, ppcArgumentVector[1]) == 0, "module version");
+  ok(iArgumentCount == 2 && strcmp(pcRelease, ppcArgumentVector[1]) == 0, "%s", "module version");
 
   return exit_status();
 }

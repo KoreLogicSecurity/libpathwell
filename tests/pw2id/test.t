@@ -1,11 +1,14 @@
+#!/bin/sh
 #!/usr/bin/perl -w
+eval 'exec perl -x ${0} ${1+"${@}"} ;'
+  if (0);
 ######################################################################
 #
-# $Id: test.t,v 1.10 2013/09/09 16:00:52 klm Exp $
+# $Id: test.t,v 1.10.2.5 2015/09/30 16:05:55 klm Exp $
 #
 ######################################################################
 #
-# Copyright 2013-2013 KoreLogic Inc., All Rights Reserved.
+# Copyright 2013-2015 The PathWell Project, All Rights Reserved.
 #
 # This software, having been partly or wholly developed and/or
 # sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -25,7 +28,43 @@ use Test::More 0.045;
 
 BEGIN
 {
-  plan('tests' => GetTestCount());
+  ####################################################################
+  #
+  # The Properties hash is essentially private. Those parts of the
+  # program that wish to access or modify the data in this hash need
+  # to call GetProperties() to obtain a reference.
+  #
+  ####################################################################
+
+  my (%hProperties);
+
+  ####################################################################
+  #
+  # Initialize platform-specific variables.
+  #
+  ####################################################################
+
+  if ($^O =~ /MSWin(32|64)/i)
+  {
+    $hProperties{'OsClass'} = "WINX";
+    $hProperties{'Extension'} = ".exe";
+  }
+  else
+  {
+    $hProperties{'OsClass'} = "UNIX";
+    $hProperties{'Extension'} = "";
+  }
+
+  ####################################################################
+  #
+  # Define helper routines.
+  #
+  ####################################################################
+
+  sub GetProperties
+  {
+    return \%hProperties;
+  }
 
   sub GetTestCount
   {
@@ -38,6 +77,14 @@ BEGIN
     close(FH);
     return $sCount;
   }
+
+  ####################################################################
+  #
+  # Create a test plan.
+  #
+  ####################################################################
+
+  plan('tests' => GetTestCount());
 }
 
 ######################################################################
@@ -72,12 +119,14 @@ sub VerifyExitStatus
 
   my @aOutput = ();
   my $sActualStatus = 0;
-  my $sCommand = "../../src/pw2id/pathwell-pw2id";
+  my $sCommand = "../../src/pw2id/pathwell-pw2id" . GetProperties()->{'Extension'};
   my $sCommandLine = "";
   my $sErrFile = "test.t.stderr";
   my $sMatch = 0;
   my $sOutFile = "test.t.stdout";
   my $sSrcDir = $ENV{'srcdir'} || ".";
+
+  $sCommand =~ s,/,\\,g if (GetProperties()->{'OsClass'} eq "WINX");
 
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -128,12 +177,12 @@ Test other conversions.
 
   my @aTuples =
   (
-    ["echo ''", "-f -", "Password=''; ID='0';"],
-    ["echo 'Summer2013!'", "-f - -t bitmask", "Password='Summer2013!'; ID='182801411';"],
-    ["echo 'Change123.'", "-f -", "Password='Change123.'; ID='6835784';"],
-    ["echo '4ppl3'", "-f - -s 3", "Password='4ppl3'; ID='3200';"],
-    ["echo 'abc123***'", "-f - -t baseN+1 -s 1", "Password='abc123***'; ID='972749';"],
-    ["echo 'abc123***'", "-f - -s 4 -t bitmask", "Password='abc123***'; ID='5522063579';"],
+    ["$^X -e 'print qq(\\n);'", "-f -", "Password=''; ID='0';"],
+    ["$^X -e 'print qq(Summer2013!\\n);'", "-f - -t bitmask", "Password='Summer2013!'; ID='182801411';"],
+    ["$^X -e 'print qq(Change123.\\n);'", "-f -", "Password='Change123.'; ID='6835784';"],
+    ["$^X -e 'print qq(4ppl3\\n);'", "-f - -s 3", "Password='4ppl3'; ID='3200';"],
+    ["$^X -e 'print qq(abc123***\\n);'", "-f - -t baseN+1 -s 1", "Password='abc123***'; ID='972749';"],
+    ["$^X -e 'print qq(abc123***\\n);'", "-f - -s 4 -t bitmask", "Password='abc123***'; ID='5522063579';"],
 
     ["", "''", "Password=''; ID='0';"],
     ["", "-t bitmask 'Summer2013!'", "Password='Summer2013!'; ID='182801411';"],
@@ -152,11 +201,13 @@ Test other conversions.
     if ($sArgs1 ne "")
     {
       $sArgs1 =~ s/ *$/ | /g;
+      $sArgs1 =~ s/'/"/g if (GetProperties()->{'OsClass'} eq "WINX");
     }
 
     $sArgs2 = @{$paArguments}[1];
     $sArgs2 =~ s/^ */ /g;
     $sArgs2 =~ s/ +$//g;
+    $sArgs2 =~ s/'/"/g if (GetProperties()->{'OsClass'} eq "WINX");
 
     $sCommandLine = $sArgs1 . $sCommand . $sArgs2;
 

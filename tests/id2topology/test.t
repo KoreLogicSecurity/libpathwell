@@ -1,11 +1,14 @@
+#!/bin/sh
 #!/usr/bin/perl -w
+eval 'exec perl -x ${0} ${1+"${@}"} ;'
+  if (0);
 ######################################################################
 #
-# $Id: test.t,v 1.13 2013/09/10 18:34:56 klm Exp $
+# $Id: test.t,v 1.13.2.5 2015/09/30 16:05:54 klm Exp $
 #
 ######################################################################
 #
-# Copyright 2013-2013 KoreLogic Inc., All Rights Reserved.
+# Copyright 2013-2015 The PathWell Project, All Rights Reserved.
 #
 # This software, having been partly or wholly developed and/or
 # sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -25,7 +28,43 @@ use Test::More 0.045;
 
 BEGIN
 {
-  plan('tests' => GetTestCount());
+  ####################################################################
+  #
+  # The Properties hash is essentially private. Those parts of the
+  # program that wish to access or modify the data in this hash need
+  # to call GetProperties() to obtain a reference.
+  #
+  ####################################################################
+
+  my (%hProperties);
+
+  ####################################################################
+  #
+  # Initialize platform-specific variables.
+  #
+  ####################################################################
+
+  if ($^O =~ /MSWin(32|64)/i)
+  {
+    $hProperties{'OsClass'} = "WINX";
+    $hProperties{'Extension'} = ".exe";
+  }
+  else
+  {
+    $hProperties{'OsClass'} = "UNIX";
+    $hProperties{'Extension'} = "";
+  }
+
+  ####################################################################
+  #
+  # Define helper routines.
+  #
+  ####################################################################
+
+  sub GetProperties
+  {
+    return \%hProperties;
+  }
 
   sub GetTestCount
   {
@@ -38,6 +77,14 @@ BEGIN
     close(FH);
     return $sCount;
   }
+
+  ####################################################################
+  #
+  # Create a test plan.
+  #
+  ####################################################################
+
+  plan('tests' => GetTestCount());
 }
 
 ######################################################################
@@ -72,12 +119,14 @@ sub VerifyExitStatus
 
   my @aOutput = ();
   my $sActualStatus = 0;
-  my $sCommand = "../../src/id2topology/pathwell-id2topology";
+  my $sCommand = "../../src/id2topology/pathwell-id2topology" . GetProperties()->{'Extension'};
   my $sCommandLine = "";
   my $sErrFile = "test.t.stderr";
   my $sMatch = 0;
   my $sOutFile = "test.t.stdout";
   my $sSrcDir = $ENV{'srcdir'} || ".";
+
+  $sCommand =~ s,/,\\,g if (GetProperties()->{'OsClass'} eq "WINX");
 
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -128,31 +177,31 @@ Test other conversions.
 
   my @aTuples =
   (
-    ["echo ''", "-f -", "ID=''; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo 'foo'", "-f -", "ID='foo'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo '1foo'", "-f -", "ID='1foo'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo 'foo1'", "-f -", "ID='foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo '1foo1'", "-f -", "ID='1foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo '1foo1foo'", "-f -", "ID='1foo1foo'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo 'foo1foo1'", "-f -", "ID='foo1foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo '1foo1foo1'", "-f -", "ID='1foo1foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo '0'", "-f -", "ID='0'; Topology='?z';"],
-    ["echo '5'", "-f -", "ID='5'; Topology='undef'; Error='Invalid baseN+1 topology ID.';"],
-    ["echo '123'", "-f -", "ID='123'; Topology='?s?s?u';"],
-    ["echo '425'", "-f - -s 2 ", "ID='425'; Topology='?d?f?s?f';"],
-    ["echo '32124'", "-f - -s 4", "ID='32124'; Topology='?H?x?f?H?s';"],
-    ["echo '124'", "-f -", "ID='124'; Topology='?s?s?s';"],
-    ["echo ''", "-f - -t bitmask", "ID=''; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo 'foo'", "-f - -t bitmask", "ID='foo'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo '1foo'", "-f - -t bitmask", "ID='1foo'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo 'foo1'", "-f - -t bitmask", "ID='foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo '1foo1'", "-f - -t bitmask", "ID='1foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo '1foo1foo'", "-f - -t bitmask", "ID='1foo1foo'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo 'foo1foo1'", "-f - -t bitmask", "ID='foo1foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo '1foo1foo1'", "-f - -t bitmask", "ID='1foo1foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
-    ["echo '0'", "-f - -t bitmask", "ID='0'; Topology='?z';"],
-    ["echo '1'", "-f - -t bitmask", "ID='1'; Topology='undef'; Error='Topology ID falls outside the allowed range.';"],
-    ["echo '37942'", "-f - -t bitmask", "ID='37942'; Topology='?d?d?s?l?u';"],
+    ["$^X -e 'print qq(\\n);'", "-f -", "ID=''; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(foo\\n);'", "-f -", "ID='foo'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(1foo\\n);'", "-f -", "ID='1foo'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(foo1\\n);'", "-f -", "ID='foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(1foo1\\n);'", "-f -", "ID='1foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(1foo1foo\\n);'", "-f -", "ID='1foo1foo'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(foo1foo1\\n);'", "-f -", "ID='foo1foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(1foo1foo1\\n);'", "-f -", "ID='1foo1foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(0\\n);'", "-f -", "ID='0'; Topology='?z';"],
+    ["$^X -e 'print qq(5\\n);'", "-f -", "ID='5'; Topology='undef'; Error='Invalid baseN+1 topology ID.';"],
+    ["$^X -e 'print qq(123\\n);'", "-f -", "ID='123'; Topology='?s?s?u';"],
+    ["$^X -e 'print qq(425\\n);'", "-f - -s 2 ", "ID='425'; Topology='?d?f?s?f';"],
+    ["$^X -e 'print qq(32124\\n);'", "-f - -s 4", "ID='32124'; Topology='?H?x?f?H?s';"],
+    ["$^X -e 'print qq(124\\n);'", "-f -", "ID='124'; Topology='?s?s?s';"],
+    ["$^X -e 'print qq(\\n);'", "-f - -t bitmask", "ID=''; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(foo\\n);'", "-f - -t bitmask", "ID='foo'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(1foo\\n);'", "-f - -t bitmask", "ID='1foo'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(foo1\\n);'", "-f - -t bitmask", "ID='foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(1foo1\\n);'", "-f - -t bitmask", "ID='1foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(1foo1foo\\n);'", "-f - -t bitmask", "ID='1foo1foo'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(foo1foo1\\n);'", "-f - -t bitmask", "ID='foo1foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(1foo1foo1\\n);'", "-f - -t bitmask", "ID='1foo1foo1'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
+    ["$^X -e 'print qq(0\\n);'", "-f - -t bitmask", "ID='0'; Topology='?z';"],
+    ["$^X -e 'print qq(1\\n);'", "-f - -t bitmask", "ID='1'; Topology='undef'; Error='Topology ID falls outside the allowed range.';"],
+    ["$^X -e 'print qq(37942\\n);'", "-f - -t bitmask", "ID='37942'; Topology='?d?d?s?l?u';"],
 
     ["", "''", "ID=''; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
     ["", "'foo'", "ID='foo'; Topology='undef'; Error='ID could not be converted to a 63-bit integer.';"],
@@ -190,11 +239,13 @@ Test other conversions.
     if ($sArgs1 ne "")
     {
       $sArgs1 =~ s/ *$/ | /g;
+      $sArgs1 =~ s/'/"/g if (GetProperties()->{'OsClass'} eq "WINX");
     }
 
     $sArgs2 = @{$paArguments}[1];
     $sArgs2 =~ s/^ */ /g;
     $sArgs2 =~ s/ +$//g;
+    $sArgs2 =~ s/'/"/g if (GetProperties()->{'OsClass'} eq "WINX");
 
     $sCommandLine = $sArgs1 . $sCommand . $sArgs2;
 

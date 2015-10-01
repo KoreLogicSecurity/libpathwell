@@ -1,7 +1,7 @@
 
 REVISION
 
-  $Id: README.INSTALL,v 1.26.2.2 2015/07/29 19:43:56 hlein Exp $
+  $Id: README.INSTALL,v 1.26.2.6 2015/08/26 13:36:09 swilson Exp $
 
 OVERVIEW
 
@@ -44,9 +44,9 @@ REQUIREMENTS
     TAP (1.03; only needed if you intend to run 'make check')
 
   Gentoo Linux is the only officially supported platform for this
-  release of PathWell.  However, recent versions of Debian, Fedora,
-  and Ubuntu have also been tested and seen to work; version details
-  are below.
+  release of PathWell.  However, recent versions of CentOS, Debian, 
+  Fedora, and Ubuntu have also been tested and seen to work; version 
+  details are below.
 
   While other Linux distributions and/or UNIX-like operating systems
   that support PAM (Pluggable Authentication Modules) with a
@@ -55,13 +55,16 @@ REQUIREMENTS
   on a supported Linux distribution that meets or exceeds the version
   dependencies.
 
-  Note: As of this writing (2013-09), the current releases of RHEL and
-  CentOS do not provide a recent enough version GMP to be compatible
-  with PathWell.  Although an administrator could perhaps install a
-  newer GMP release by hand, that is not supported, and its impact to
-  other software on an RHEL or CentOS server is undefined.
-
 PREREQUISITES INSTALLATION
+
+  CentOS (7.1) x64
+
+    Development Tools (groupinstall)
+    gmp-devel (6.0.0)
+    pam-devel (1.1.8)
+    perl-Test-Simple (0.98) - if TAP tests are desired
+    pcre-devel (8.32)
+    sqlite-devel (3.7.17)
 
   Debian (7.2) x64
 
@@ -72,15 +75,14 @@ PREREQUISITES INSTALLATION
     libsqlite3-dev (3.7.13-1+deb7u1)
     sqlite3 (3.7.13-1+deb7u1)
 
-  Fedora (19) x64
+  Fedora (22) x64
 
     Development Tools (groupinstall)
-    automake (1.13.4)
-    gmp-devel (5.1.1)
-    pam-devel (1.1.6)
-    pcre-devel (8.32)
-    perl-pod-minimumversion (50)
-    sqlite-devel (3.8.0.2)
+    automake (1.15)
+    gmp-devel (6.0.0)
+    pam-devel (1.1.8)
+    pcre-devel (8.37)
+    sqlite-devel (3.8.10.2)
     perl-Test-use-ok (0.11) - if TAP tests are desired
 
   Gentoo (2.2) x64

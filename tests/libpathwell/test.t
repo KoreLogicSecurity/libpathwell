@@ -1,11 +1,14 @@
+#!/bin/sh
 #!/usr/bin/perl -w
+eval 'exec perl -x ${0} ${1+"${@}"} ;'
+  if (0);
 ######################################################################
 #
-# $Id: test.t,v 1.26 2013/11/05 02:14:34 klm Exp $
+# $Id: test.t,v 1.26.2.4 2015/09/30 16:05:55 klm Exp $
 #
 ######################################################################
 #
-# Copyright 2013-2013 KoreLogic Inc., All Rights Reserved.
+# Copyright 2013-2015 The PathWell Project, All Rights Reserved.
 #
 # This software, having been partly or wholly developed and/or
 # sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -25,7 +28,43 @@ use Test::More 0.045;
 
 BEGIN
 {
-  plan('tests' => GetTestCount());
+  ####################################################################
+  #
+  # The Properties hash is essentially private. Those parts of the
+  # program that wish to access or modify the data in this hash need
+  # to call GetProperties() to obtain a reference.
+  #
+  ####################################################################
+
+  my (%hProperties);
+
+  ####################################################################
+  #
+  # Initialize platform-specific variables.
+  #
+  ####################################################################
+
+  if ($^O =~ /MSWin(32|64)/i)
+  {
+    $hProperties{'OsClass'} = "WINX";
+    $hProperties{'Extension'} = ".exe";
+  }
+  else
+  {
+    $hProperties{'OsClass'} = "UNIX";
+    $hProperties{'Extension'} = "";
+  }
+
+  ####################################################################
+  #
+  # Define helper routines.
+  #
+  ####################################################################
+
+  sub GetProperties
+  {
+    return \%hProperties;
+  }
 
   sub GetTestCount
   {
@@ -38,6 +77,14 @@ BEGIN
     close(FH);
     return $sCount;
   }
+
+  ####################################################################
+  #
+  # Create a test plan.
+  #
+  ####################################################################
+
+  plan('tests' => GetTestCount());
 }
 
 ######################################################################
@@ -72,9 +119,11 @@ sub VerifyExitStatus
 
   my @aOutput;
   my %hKvps;
+  my $sCommand;
   my $sCommandLine;
   my $sActualStatus;
   my $sSrcDir = $ENV{'srcdir'} || ".";
+  my $phProperties = GetProperties();
 
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -101,10 +150,11 @@ Test release string.
     }
   }
   close(FH);
-  $sCommandLine = qq($sSrcDir/../../utils/version2string -t tar -v $hKvps{'VERSION'} | tr -d '\n');
+  $sCommandLine = qq($^X $sSrcDir/../../utils/version2string -t tar -v $hKvps{'VERSION'} | tr -d '\n');
   @aOutput = qx($sCommandLine);
 
-  $sCommandLine = qq(./api_PwVGetReleaseString $aOutput[0]);
+  $sCommand = "api_PwVGetReleaseString" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand $aOutput[0]);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test release string.");
@@ -135,7 +185,8 @@ Test library version.
   }
   close(FH);
 
-  $sCommandLine = qq(./api_PwVGetLibraryVersion $hKvps{'CURRENT'}:$hKvps{'REVISION'}:$hKvps{'AGE'});
+  $sCommand = "api_PwVGetLibraryVersion" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand $hKvps{'CURRENT'}:$hKvps{'REVISION'}:$hKvps{'AGE'});
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test library version.");
@@ -166,7 +217,8 @@ Test module version.
   }
   close(FH);
 
-  $sCommandLine = qq(./api_PwVGetModuleVersion $hKvps{'CURRENT'}:$hKvps{'REVISION'}:$hKvps{'AGE'});
+  $sCommand = "api_PwVGetModuleVersion" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand $hKvps{'CURRENT'}:$hKvps{'REVISION'}:$hKvps{'AGE'});
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test module version.");
@@ -185,7 +237,8 @@ Test topology to ID conversions.
 
 =cut
 
-  $sCommandLine = qq(./api_PwTTopologyToId);
+  $sCommand = "api_PwTTopologyToId" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test topology to ID conversions.");
@@ -204,7 +257,8 @@ Test ID to topology conversions.
 
 =cut
 
-  $sCommandLine = qq(./api_PwTIdToTopology);
+  $sCommand = "api_PwTIdToTopology" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test ID to topology conversions.");
@@ -224,7 +278,8 @@ Test Lev Distance calculations.
 
 =cut
 
-  $sCommandLine = qq(./api_PwLCalcLevDistance);
+  $sCommand = "api_PwLCalcLevDistance" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test Lev Distance calculations.");
@@ -243,7 +298,8 @@ Test Lev Distance checks.
 
 =cut
 
-  $sCommandLine = qq(./api_PwLCheckLevDistance);
+  $sCommand = "api_PwLCheckLevDistance" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test Lev Distance checks.");
@@ -262,7 +318,8 @@ Test chomp operations.
 
 =cut
 
-  $sCommandLine = qq(./api_PwSChomp);
+  $sCommand = "api_PwSChomp" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test PwSChomp.");
@@ -281,7 +338,8 @@ Test database schema creation.
 
 =cut
 
-  $sCommandLine = qq(./api_PwDCreateSchema);
+  $sCommand = "api_PwDCreateSchema" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test database schema creation.");
@@ -300,7 +358,8 @@ Test database schema deletion.
 
 =cut
 
-  $sCommandLine = qq(./api_PwDDeleteSchema);
+  $sCommand = "api_PwDDeleteSchema" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test database schema deletion.");
@@ -319,7 +378,8 @@ Test database schema verification.
 
 =cut
 
-  $sCommandLine = qq(./api_PwDVerifySchema);
+  $sCommand = "api_PwDVerifySchema" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test database schema verification.");
@@ -338,7 +398,8 @@ Test loading blacklisted topologies.
 
 =cut
 
-  $sCommandLine = qq(./api_PwDLoadBlacklistedTopologies $sSrcDir/../../data/topology_blacklist.default);
+  $sCommand = "api_PwDLoadBlacklistedTopologies" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand $sSrcDir/../../data/topology_blacklist.default);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test loading blacklisted topologies.");
@@ -357,7 +418,8 @@ Test use count increments.
 
 =cut
 
-  $sCommandLine = qq(./api_PwDIncrementUseCount);
+  $sCommand = "api_PwDIncrementUseCount" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test use count increments.");
@@ -376,7 +438,8 @@ Test use count decrements.
 
 =cut
 
-  $sCommandLine = qq(./api_PwDDecrementUseCount);
+  $sCommand = "api_PwDDecrementUseCount" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test use count decrements.");
@@ -395,7 +458,8 @@ Test clearing use count.
 
 =cut
 
-  $sCommandLine = qq(./api_PwDClearUseCount);
+  $sCommand = "api_PwDClearUseCount" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test clearing use counts.");
@@ -414,7 +478,8 @@ Test passwords in various token sets.
 
 =cut
 
-  $sCommandLine = qq(./api_PwTIsPasswordInTokenSet);
+  $sCommand = "api_PwTIsPasswordInTokenSet" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test passwords in various token sets.");
@@ -433,7 +498,8 @@ Test password to topology conversions.
 
 =cut
 
-  $sCommandLine = qq(./api_PwTPasswordToTopology);
+  $sCommand = "api_PwTPasswordToTopology" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test password to topology conversions.");
@@ -452,7 +518,8 @@ Test base N conversions.
 
 =cut
 
-  $sCommandLine = qq(./api_PwSBaseNTo63Bit);
+  $sCommand = "api_PwSBaseNTo63Bit" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test base N conversions.");
@@ -471,7 +538,8 @@ Test dirname operations.
 
 =cut
 
-  $sCommandLine = qq(./api_PwSDirname);
+  $sCommand = "api_PwSDirname" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test dirname operations.");
@@ -490,7 +558,8 @@ Test Levenshtein distance calculations.
 
 =cut
 
-  $sCommandLine = qq(./api_PwSLevenshteinDistance);
+  $sCommand = "api_PwSLevenshteinDistance" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test Levenshtein distance calculations.");
@@ -509,7 +578,8 @@ Test blacklisted topologies.
 
 =cut
 
-  $sCommandLine = qq(./api_PwDTopologyIsBlacklisted $sSrcDir/../../data/topology_blacklist.default);
+  $sCommand = "api_PwDTopologyIsBlacklisted" . $$phProperties{'Extension'};
+  $sCommandLine = qq(./$sCommand $sSrcDir/../../data/topology_blacklist.default);
   @aOutput = qx($sCommandLine);
   $sActualStatus = $?;
   ok(VerifyExitStatus($sActualStatus, 0, 0), "Test blacklisted topologies.");
