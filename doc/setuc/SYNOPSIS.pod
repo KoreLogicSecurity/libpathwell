@@ -1,0 +1,5 @@
+
+=head1 SYNOPSIS
+
+B<pathwell-setuc> B<[-p]> B<[-f {file|-}]> B<[-s token-set]> B<[-t encoding-type]> -c count -d db B<[{password|topology} [...]]>
+

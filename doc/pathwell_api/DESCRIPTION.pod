@@ -5,14 +5,16 @@ This library provides a C API (Application Programming Interface)
 that was designed to support a PathWell PAM (Pluggable Authentication
 Modules) module and various applications that need to perform
 password/topology/ID conversions or interface with the PathWell data
-store. The library also provides interfaces to support applications
+store.  The library also provides interfaces to support applications
 that need to perform Levenshtein (Lev) distance computations and
-checks. The library's interfaces are divided into the following
+checks.  The library's interfaces are divided into the following
 groups:
 
+    PwC -- PathWell Check Routines
     PwD -- PathWell Datastore Routines
     PwE -- PathWell Error Routines
-    PwL -- PathWell Lev Routines
+    PwH -- PathWell Hint Routines
+    PwL -- PathWell Levenshtein Routines
     PwS -- PathWell Support Routines
     PwT -- PathWell Topology Routines
 

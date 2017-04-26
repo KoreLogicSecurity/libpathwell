@@ -2,6 +2,6 @@
 =head1 DESCRIPTION
 
 This module can be plugged into the password stack of a given
-application (typically passwd(1)) to provide wear-leveling for
+application (typically B<passwd(1)>) to provide wear-leveling for
 passwords.
 

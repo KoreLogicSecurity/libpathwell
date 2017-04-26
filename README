@@ -1,7 +1,7 @@
 
 REVISION
 
-  $Id: README,v 1.4.2.1 2015/07/29 01:18:31 klm Exp $
+  $Id: README,v 1.6 2017/04/12 18:21:45 klm Exp $
 
 OVERVIEW
 
@@ -15,12 +15,12 @@ OVERVIEW
   passwords fitting some conventional strength rules (such as minimum
   length, minimum number of character sets), they tend to gravitate
   towards common topologies.  Password cracking tools incorporate this
-  (called "masks" in oclHashcat, for example).  A set of password
+  (called "masks" in Hashcat, for example).  A set of password
   hashes with a slow (difficult) cipher, or a set of very long
   (14-character or more) passwords may be infeasible to blindly crack,
   but by focusing on only 1-5 most popular topologies, an attacker
   might crack 5-10% or more of an enterprise's user passwords in hours
-  or days instead of years of effort.
+  or days instead of months or years of effort.
 
   Password crackers would have a far lower success rate if topologies
   could not be reused by multiple users.  PathWell provides tools to

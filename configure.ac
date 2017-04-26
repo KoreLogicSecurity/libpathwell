@@ -1,6 +1,6 @@
 ########################################################################
 #
-# $Id: configure.ac,v 1.52.2.6 2015/09/10 21:32:43 klm Exp $
+# $Id: configure.ac,v 1.63 2015/12/09 14:51:00 klm Exp $
 #
 ########################################################################
 
@@ -225,6 +225,105 @@ int main() { unsigned int uiVersion = (__GNU_MP_VERSION << 24) | (__GNU_MP_VERSI
   CFLAGS=${OLD_CFLAGS}
   LIBS=${OLD_LIBS}
   export LD_LIBRARY_PATH=${OLD_LD_LIBRARY_PATH}
+fi
+
+dnl ####################################################################
+dnl #
+dnl # Check for JSON.
+dnl #
+dnl ####################################################################
+
+CheckJsonComponents()
+{
+  JSONDIR=${1}
+  INCLUDE_LIST="jansson.h"
+  for INCLUDE_FILE in ${INCLUDE_LIST} ; do
+    if test ! -f "${JSONDIR}/include/${INCLUDE_FILE}" ; then
+      return 1
+    fi
+  done
+  my_jsondir=${JSONDIR}
+  return 0
+}
+
+AC_MSG_CHECKING([for JSON support])
+AC_ARG_WITH(json,
+  [  --with-json=DIR         Use JSON with includes and libs from [DIR]/include and [DIR]/lib
+  --without-json          Disable JSON support],
+  [
+    case `echo ${withval} | tr "A-Z" "a-z"` in
+    no)
+      use_json="0"
+      ;;
+    *)
+      use_json="1"
+      CheckJsonComponents "${withval}"
+      ;;
+    esac
+  ],
+  [
+    use_json="1"
+    for my_basedir in ${LIB_LIST} ; do
+      for my_dir in "${my_basedir}" "${my_basedir}/jansson" ; do
+        CheckJsonComponents "${my_dir}" && break 2
+      done
+    done
+  ]
+)
+if test ${use_json} -ne 0 ; then
+  if test -z "${my_jsondir}" ; then
+    AC_MSG_RESULT([missing or incomplete])
+    echo
+    echo "Unable to locate required JSON components. Use --with-json=DIR to"
+    echo "specify a known or different location. The files that must exist for"
+    echo "this check to pass are:"
+    echo
+    echo "  DIR/include/jansson.h"
+    echo
+    exit 1
+  else
+    AC_MSG_RESULT([${my_jsondir}])
+    json_cflags="-I${my_jsondir}/include"
+    json_ldadd="-ljansson"
+    json_ldflags="-L${my_jsondir}/lib"
+    AC_SUBST(json_cflags)
+    AC_SUBST(json_ldadd)
+    AC_SUBST(json_ldflags)
+    OLD_CFLAGS=${CFLAGS}
+    OLD_LIBS=${LIBS}
+    OLD_LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
+    CFLAGS="${CFLAGS} ${json_cflags}"
+    LIBS="${LIBS} ${json_ldflags} ${json_ldadd}"
+    export LD_LIBRARY_PATH="${my_jsondir}/lib:${LD_LIBRARY_PATH}"
+    AC_MSG_CHECKING([whether or not JSON release number is ok])
+    AC_RUN_IFELSE(
+      [
+        AC_LANG_SOURCE(
+        [[
+#include <jansson.h>
+int main() { return (JANSSON_VERSION_HEX >= 0x00020301) ? 0 : 1; }
+        ]]
+        )
+      ],
+      [json_version_ok="1"],
+      [json_version_ok="0"],
+      [json_version_ok="2"]
+    )
+    if test ${json_version_ok} -eq 1 ; then
+      AC_DEFINE(USE_JSON, 1, [Define to 1 if JSON support is enabled.])
+      AC_MSG_RESULT([yes])
+    elif test ${json_version_ok} -eq 2 ; then
+      AC_MSG_RESULT([skipped (cross-compiling)])
+    else
+      AC_MSG_RESULT([no (2.3.1 or higher required)])
+      exit 1
+    fi
+    CFLAGS=${OLD_CFLAGS}
+    LIBS=${OLD_LIBS}
+    export LD_LIBRARY_PATH=${OLD_LD_LIBRARY_PATH}
+  fi
+else
+  AC_MSG_RESULT(check explicitly disabled)
 fi
 
 dnl ####################################################################
@@ -689,6 +788,7 @@ AC_CONFIG_FILES(
     Makefile
     data/Makefile
     doc/Makefile
+    doc/chkpw/Makefile
     doc/create-db/Makefile
     doc/export-db/Makefile
     doc/id2topology/Makefile
@@ -697,9 +797,11 @@ AC_CONFIG_FILES(
     doc/pathwell_charsets/Makefile
     doc/pw2id/Makefile
     doc/pw2topology/Makefile
+    doc/setuc/Makefile
     doc/topology2id/Makefile
     include/Makefile
     src/Makefile
+    src/chkpw/Makefile
     src/create-db/Makefile
     src/export-db/Makefile
     src/id2topology/Makefile
@@ -707,8 +809,10 @@ AC_CONFIG_FILES(
     src/pam_pathwell/Makefile
     src/pw2id/Makefile
     src/pw2topology/Makefile
+    src/setuc/Makefile
     src/topology2id/Makefile
     tests/Makefile
+    tests/chkpw/Makefile
     tests/id2topology/Makefile
     tests/libpathwell/Makefile
     tests/pw2id/Makefile
@@ -723,6 +827,8 @@ AC_CONFIG_LINKS(
   [
     include/pathwell.h:include/pathwell.h
     include/pathwell-pstdint.h:include/pstdint.h
+    src/chkpw/pathwell-chkpw.c:src/chkpw/chkpw.c
+    src/chkpw/pathwell-chkpw.h:src/chkpw/chkpw.h
     src/create-db/pathwell-create-db.c:src/create-db/create-db.c
     src/create-db/pathwell-create-db.h:src/create-db/create-db.h
     src/export-db/pathwell-export-db:src/export-db/export-db
@@ -732,6 +838,8 @@ AC_CONFIG_LINKS(
     src/pw2id/pathwell-pw2id.h:src/pw2id/pw2id.h
     src/pw2topology/pathwell-pw2topology.c:src/pw2topology/pw2topology.c
     src/pw2topology/pathwell-pw2topology.h:src/pw2topology/pw2topology.h
+    src/setuc/pathwell-setuc.c:src/setuc/setuc.c
+    src/setuc/pathwell-setuc.h:src/setuc/setuc.h
     src/topology2id/pathwell-topology2id.c:src/topology2id/topology2id.c
     src/topology2id/pathwell-topology2id.h:src/topology2id/topology2id.h
   ]

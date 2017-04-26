@@ -9,9 +9,9 @@ with 'password'.  Those might be in /etc/pam.d/common-password,
 /etc/pam.d/system-auth, or some other file.  See README.PAM from the
 source distribution for notes about some specific distributions.
 
-In these examples, lines consisting of just "..." indicate other
+In these examples, lines consisting of just '...' indicate other
 optional and varied entries that might already exist.  Lines ending
-with "..." indicate lines that are expected to exist, whose options
+with '...' indicate lines that are expected to exist, whose options
 are not relevant to configuring PathWell and should not need to be
 altered.
 
@@ -25,14 +25,14 @@ prevalent topology-bias is among its user population.
 
 The key parts to focus on are:
 
-Set the pam_pathwell control flag to "optional", so that
-pam_pathwell's mode=monitor call will never cause a password to be
-rejected,
+Set the pam_pathwell control flag to 'optional', so that
+pam_pathwell's 'mode=monitor' call will never cause a password to be
+rejected.
 
 Ensure that pam_pathwell is stacked after pam_unix, so that it is
 called only when a user's proposed new password has been accepted.
 
-Ensure that the use_authtok option is set, so that the password
+Ensure that the B<use_authtok> option is set, so that the password
 the user has already entered is passed to pam_pathwell.
 
     password required pam_unix.so ...
@@ -49,14 +49,14 @@ reject candidate passwords using static criteria, such as a blacklist.
 
 The key parts to focus on are:
 
-Set the pam_pathwell control flag to "required", so that a failure to
+Set the pam_pathwell control flag to 'required', so that a failure to
 satisfy PathWell enforcement means the password will be rejected.
 
-Ensure that pam_pathwell is stacked after any "required" modules that
+Ensure that pam_pathwell is stacked after any 'required' modules that
 perform conventional strength checks, so that the user's candidate
 password must pass those checks first.
 
-Ensure that the use_authtok option is set, so that the password the
+Ensure that the B<use_authtok> option is set, so that the password the
 user has already entered is passed to pam_pathwell.
 
     password required pam_cracklib.so ...
@@ -76,13 +76,13 @@ reflect that the usage count for the new topology has increased
 
 The key parts to focus on are:
 
-Ensure that a call to "mode=enforce" is set as "required", following
-at least one strength-enforcing "required" line.
+Ensure that a call to 'mode=enforce' is set as 'required', following
+at least one strength-enforcing 'required' line.
 
-Ensure that a call to "mode=monitor" is set as "optional", after all
-"required" lines.
+Ensure that a call to 'mode=monitor' is set as 'optional', after all
+'required' lines.
 
-Ensure that the use_authtok option is set for both pam_pathwell
+Ensure that the B<use_authtok option> is set for both pam_pathwell
 invokations, so that the password the user has already entered is
 passed to pam_pathwell.
 

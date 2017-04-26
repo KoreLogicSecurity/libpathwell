@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api.c,v 1.243.2.6 2015/09/30 19:11:21 klm Exp $
+ * $Id: api.c,v 1.278 2017/04/21 19:04:34 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2017 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -24,9 +24,9 @@
  *
  ***********************************************************************
  */
-static char const *gpcContextAllocationError = "context allocation error";
-static char const *gpcRealErrorLostNullFormat = "real error lost due to a format error";
-static char const *gpcRealErrorLostNullMalloc = "real error lost due to a memory error";
+char const *gpcContextAllocationError = "context allocation error";
+char const *gpcRealErrorLostNullFormat = "real error lost due to a format error";
+char const *gpcRealErrorLostNullMalloc = "real error lost due to a memory error";
 static int giPwDLibraryReferenceCount = 0;
 static PW_D_CANNED_SQL gasCannedSql[] =
 {
@@ -310,6 +310,794 @@ static unsigned char gaucTokenSet4[256] = // Do not edit this array manually as 
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
   1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,
 };
+
+/*-
+ ***********************************************************************
+ *
+ * PwCAllCheck
+ *
+ ***********************************************************************
+ */
+int
+PwCAllCheck(PW_C_CONTEXT *psPwCContext)
+{
+  int iLeveled = PATHWELL_FALSE;
+  int iBlacklisted = PATHWELL_FALSE;
+
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwCContextIsValid(psPwCContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid context. That should not happen.", NULL);
+    return ER;
+  }
+  PATHWELL_ASSERT(PwCContextIsValid(psPwCContext) == PATHWELL_TRUE);
+
+  /*-
+   *********************************************************************
+   *
+   * Conditionally reject passwords that are too short.
+   *
+   *********************************************************************
+   */
+  if (PwCIsMinLenEnabled(psPwCContext) && psPwCContext->iMinLen > 0)
+  {
+    if (strlen(PwTGetPassword(psPwCContext->psNewPwTContext)) < psPwCContext->iMinLen)
+    {
+      psPwCContext->uiCheckCode = PATHWELL_ALLCHECK_FAIL_MINLEN;
+      return ER_OK;
+    }
+  }
+
+  /*-
+   *********************************************************************
+   *
+   * Conditionally reject passwords having a blacklisted topology.
+   *
+   *********************************************************************
+   */
+  if (PwCIsBlacklistEnabled(psPwCContext))
+  {
+    iBlacklisted = PwDTopologyIsBlacklisted(psPwCContext->psPwDContext, PwTGetTopology(psPwCContext->psNewPwTContext));
+    if (iBlacklisted == PATHWELL_INDETERMINATE)
+    {
+      PwCSetError(psPwCContext, "%s", PwDGetError(psPwCContext->psPwDContext), NULL);
+      return ER;
+    }
+    if (iBlacklisted == PATHWELL_TRUE)
+    {
+      psPwCContext->uiCheckCode = PATHWELL_ALLCHECK_FAIL_BLACKLIST;
+      return ER_OK;
+    }
+  }
+
+  /*-
+   *******************************************************************
+   *
+   * Conditionally reject old/new passwords that are too similar.
+   *
+   *******************************************************************
+   */
+  if (PwCIsMinLevEnabled(psPwCContext) && psPwCContext->iMinLev > 0)
+  {
+    PW_L_CONTEXT *psPwLContext = PwLNewContextFromParameters(psPwCContext->psOldPwTContext, psPwCContext->psNewPwTContext);
+    if (PwLContextIsValid(psPwLContext) != PATHWELL_TRUE)
+    {
+      PwCSetError(psPwCContext, "%s", PwLGetError(psPwLContext), NULL);
+      PwLFreeContext(&psPwLContext);
+      return ER;
+    }
+    PATHWELL_ASSERT(PwLContextIsValid(PwLContext) == PATHWELL_TRUE);
+    iLeveled = PwLCheckLevDistance(psPwLContext, psPwCContext->iMinLev);
+    if (iLeveled == PATHWELL_INDETERMINATE)
+    {
+      PwCSetError(psPwCContext, "%s", PwLGetError(psPwLContext) , NULL);
+      PwLFreeContext(&psPwLContext);
+      return ER;
+    }
+    if (iLeveled != PATHWELL_TRUE)
+    {
+      psPwCContext->uiCheckCode = PATHWELL_ALLCHECK_FAIL_MINLEV;
+      PwLFreeContext(&psPwLContext);
+      return ER_OK;
+    }
+  }
+
+  /*-
+   *********************************************************************
+   *
+   * Conditionally reject passwords whose topology use count would
+   * exceed the specified limit. Note that PwDGetUseCount() returns
+   * NULL if the use count is not yet defined in the database, and
+   * under those circumstances, a NULL by itself is not considered
+   * an error. Any true error will be accompanied by a corresponding
+   * error message, which can be retrieved via PwDGetError().
+   *
+   *********************************************************************
+   */
+  if (PwCIsMaxUseEnabled(psPwCContext) && psPwCContext->iMaxUse > 0)
+  {
+    unsigned int *puiUseCount = PwDGetUseCount(psPwCContext->psPwDContext, psPwCContext->psNewPwTContext);
+    if (puiUseCount == NULL)
+    {
+      if (PwDGetError(psPwCContext->psPwDContext) != NULL)
+      {
+        PwCSetError(psPwCContext, "%s", PwDGetError(psPwCContext->psPwDContext) , NULL);
+        return ER;
+      }
+      else
+      {
+        /* The use count has not yet been defined in the database, and that's OK. */
+      }
+    }
+    else
+    {
+      unsigned int uiUseCount = *puiUseCount;
+      free(puiUseCount);
+      if (uiUseCount >= psPwCContext->iMaxUse)
+      {
+        psPwCContext->uiCheckCode = PATHWELL_ALLCHECK_FAIL_MAXUSE;
+        return ER_OK;
+      }
+    }
+  }
+
+  /*-
+   ********************************************************************
+   *
+   * If we made it this far, all PathWell checks passed.
+   *
+   ********************************************************************
+   */
+  psPwCContext->uiCheckCode = PATHWELL_ALLCHECK_PASS;
+
+  return ER_OK;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCContextIsValid
+ *
+ ***********************************************************************
+ */
+int
+PwCContextIsValid(PW_C_CONTEXT *psPwCContext)
+{
+  if (
+         psPwCContext == NULL
+      || PwDContextIsValid(psPwCContext->psPwDContext) != PATHWELL_TRUE
+      || PwTContextIsValid(psPwCContext->psOldPwTContext) != PATHWELL_TRUE
+      || PwTContextIsValid(psPwCContext->psNewPwTContext) != PATHWELL_TRUE
+      || psPwCContext->uiCheckCode < PATHWELL_ALLCHECK_MIN
+      || psPwCContext->uiCheckCode > PATHWELL_ALLCHECK_MAX
+     )
+  {
+    return PATHWELL_FALSE;
+  }
+  return PATHWELL_TRUE;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCDisableBlacklist
+ *
+ ***********************************************************************
+ */
+int
+PwCDisableBlacklist(PW_C_CONTEXT *psPwCContext)
+{
+  unsigned int uiMask = 0;
+
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwCContextIsValid(psPwCContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid context. That should not happen.", NULL);
+    return ER;
+  }
+  PATHWELL_ASSERT(PwCContextIsValid(psPwCContext) == PATHWELL_TRUE);
+
+  uiMask = PwCGetChecks(psPwCContext);
+
+  uiMask = uiMask & (PATHWELL_MASK_BLACKLIST ^ (unsigned int)0xFFFFFFFF);
+
+  if (PwCSetChecks(psPwCContext, uiMask) != ER_OK)
+  {
+    PwCSetError(psPwCContext, "Could not disable Blacklist.", NULL);
+    return ER;
+  }
+
+  return ER_OK;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCEnableBlacklist
+ *
+ ***********************************************************************
+ */
+int
+PwCEnableBlacklist(PW_C_CONTEXT *psPwCContext)
+{
+  unsigned int uiMask = 0;
+
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwCContextIsValid(psPwCContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid context. That should not happen.", NULL);
+    return ER;
+  }
+  PATHWELL_ASSERT(PwCContextIsValid(psPwCContext) == PATHWELL_TRUE);
+
+  uiMask = PwCGetChecks(psPwCContext);
+
+  uiMask = uiMask | PATHWELL_MASK_BLACKLIST;
+
+  if (PwCSetChecks(psPwCContext, uiMask) != ER_OK)
+  {
+    PwCSetError(psPwCContext, "Could not enable Blacklist.", NULL);
+    return ER;
+  }
+
+  return ER_OK;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCFreeContext
+ *
+ ***********************************************************************
+ */
+void
+PwCFreeContext(PW_C_CONTEXT **ppsPwCContext)
+{
+  PW_C_CONTEXT *psPwCContext = *ppsPwCContext;
+
+  if (psPwCContext != NULL)
+  {
+    if
+    (
+         psPwCContext->pcError != NULL
+      && psPwCContext->pcError != gpcContextAllocationError
+      && psPwCContext->pcError != gpcRealErrorLostNullFormat
+      && psPwCContext->pcError != gpcRealErrorLostNullMalloc
+    )
+    {
+      free(psPwCContext->pcError);
+    }
+    free(psPwCContext);
+    *ppsPwCContext = NULL;
+  }
+
+  return;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCGetCheckCode
+ *
+ ***********************************************************************
+ */
+unsigned int
+PwCGetCheckCode(PW_C_CONTEXT *psPwCContext)
+{
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwCContextIsValid(psPwCContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid context. That should not happen.", NULL);
+    return 0;
+  }
+  PATHWELL_ASSERT(PwCContextIsValid(psPwCContext) == PATHWELL_TRUE);
+
+  return psPwCContext->uiCheckCode;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCGetChecks
+ *
+ ***********************************************************************
+ */
+unsigned int
+PwCGetChecks(PW_C_CONTEXT *psPwCContext)
+{
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwCContextIsValid(psPwCContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid context. That should not happen.", NULL);
+    return 0;
+  }
+  PATHWELL_ASSERT(PwCContextIsValid(psPwCContext) == PATHWELL_TRUE);
+
+  return psPwCContext->uiChecks;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCGetError
+ *
+ ***********************************************************************
+ */
+const char *
+PwCGetError(PW_C_CONTEXT *psPwCContext)
+{
+  if (psPwCContext == NULL)
+  {
+    return gpcContextAllocationError;
+  }
+
+  return psPwCContext->pcError;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCGetMaxUse
+ *
+ ***********************************************************************
+ */
+int
+PwCGetMaxUse(PW_C_CONTEXT *psPwCContext)
+{
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwCContextIsValid(psPwCContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid context. That should not happen.", NULL);
+    return ER;
+  }
+  PATHWELL_ASSERT(PwCContextIsValid(psPwCContext) == PATHWELL_TRUE);
+
+  return psPwCContext->iMaxUse;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCGetMinLen
+ *
+ ***********************************************************************
+ */
+int
+PwCGetMinLen(PW_C_CONTEXT *psPwCContext)
+{
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwCContextIsValid(psPwCContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid context. That should not happen.", NULL);
+    return ER;
+  }
+  PATHWELL_ASSERT(PwCContextIsValid(psPwCContext) == PATHWELL_TRUE);
+
+  return psPwCContext->iMinLen;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCGetMinLev
+ *
+ ***********************************************************************
+ */
+int
+PwCGetMinLev(PW_C_CONTEXT *psPwCContext)
+{
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwCContextIsValid(psPwCContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Failed to get MinLev, invalid context. That should not happen", NULL);
+    return ER;
+  }
+  PATHWELL_ASSERT(PwCContextIsValid(psPwCContext) == PATHWELL_TRUE);
+
+  return psPwCContext->iMinLev;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCNewContextFromParameters
+ *
+ ***********************************************************************
+ */
+PW_C_CONTEXT *
+PwCNewContextFromParameters(PW_D_CONTEXT *psPwDContext, PW_T_CONTEXT *psOldPwTContext, PW_T_CONTEXT *psNewPwTContext, int iMaxUse, int iMinLen, int iMinLev, int iTopoBlacklist)
+{
+  PW_C_CONTEXT *psPwCContext = NULL;
+  unsigned int uiChecks = 0;
+
+  /*-
+   *********************************************************************
+   *
+   * Allocate and initialize memory for a new context structure.
+   *
+   *********************************************************************
+   */
+  psPwCContext = calloc(1, sizeof(PW_C_CONTEXT));
+  if (psPwCContext == NULL)
+  {
+    return NULL;
+  }
+
+  /*-
+   *********************************************************************
+   *
+   * Make sure the caller has provided valid inputs.
+   *
+   *********************************************************************
+   */
+  if (PwDContextIsValid(psPwDContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid member context (database). That should not happen.", NULL);
+    return psPwCContext;
+  }
+  PATHWELL_ASSERT(PwDContextIsValid(psPwDContext) == PATHWELL_TRUE);
+
+  if (PwTContextIsValid(psOldPwTContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid member context (old topology). That should not happen.", NULL);
+    return psPwCContext;
+  }
+  PATHWELL_ASSERT(PwTContextIsValid(psOldPwTContext) == PATHWELL_TRUE);
+
+  if (PwTContextIsValid(psNewPwTContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid member context (new topology). That should not happen.", NULL);
+    return psPwCContext;
+  }
+  PATHWELL_ASSERT(PwTContextIsValid(psNewPwTContext) == PATHWELL_TRUE);
+
+  if (iMaxUse < 0)
+  {
+    PwCSetError(psPwCContext, "The maximum use count must be integer greater than or equal to zero.", NULL);
+    return psPwCContext;
+  }
+
+  if (iMinLen < 0)
+  {
+    PwCSetError(psPwCContext, "The minimum length must be integer greater than or equal to zero.", NULL);
+    return psPwCContext;
+  }
+
+  if (iMinLev < 0)
+  {
+    PwCSetError(psPwCContext, "The minimum Levenshtein distance must be integer greater than or equal to zero.", NULL);
+    return psPwCContext;
+  }
+
+  if (iTopoBlacklist != PATHWELL_TRUE && iTopoBlacklist != PATHWELL_FALSE)
+  {
+    PwCSetError(psPwCContext, "The topology blacklist must be specified as one of \"PATHWELL_TRUE\" or \"PATHWELL_FALSE\".", NULL);
+    return psPwCContext;
+  }
+
+  /*-
+   *********************************************************************
+   *
+   * Initialize the bitmask that governs which checks are enforced.
+   *
+   *********************************************************************
+   */
+  if (iMaxUse > 0)
+  {
+    uiChecks |= PATHWELL_MASK_MAXUSE;
+  }
+
+  if (iMinLen > 0)
+  {
+    uiChecks |= PATHWELL_MASK_MINLEN;
+  }
+
+  if (iMinLev > 0)
+  {
+    uiChecks |= PATHWELL_MASK_MINLEV;
+  }
+
+  if (iTopoBlacklist == PATHWELL_TRUE)
+  {
+    uiChecks |= PATHWELL_MASK_BLACKLIST;
+  }
+
+  /*-
+   *********************************************************************
+   *
+   * Initialize members.
+   *
+   *********************************************************************
+   */
+  psPwCContext->iMaxUse = iMaxUse;
+  psPwCContext->iMinLen = iMinLen;
+  psPwCContext->iMinLev = iMinLev;
+  psPwCContext->pcError = NULL;
+  psPwCContext->psNewPwTContext = psNewPwTContext;
+  psPwCContext->psOldPwTContext = psOldPwTContext;
+  psPwCContext->psPwDContext = psPwDContext;
+  psPwCContext->uiCheckCode = PATHWELL_ALLCHECK_PASS;
+  psPwCContext->uiChecks = uiChecks;
+
+  return psPwCContext;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCSetCheckCode
+ *
+ ***********************************************************************
+ */
+int
+PwCSetCheckCode(PW_C_CONTEXT *psPwCContext, unsigned int uiCheckCode)
+{
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwCContextIsValid(psPwCContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid context. That should not happen.", NULL);
+    return ER;
+  }
+  PATHWELL_ASSERT(PwCContextIsValid(psPwCContext) == PATHWELL_TRUE);
+
+  psPwCContext->uiCheckCode = uiCheckCode;
+
+  return ER_OK;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCSetChecks
+ *
+ ***********************************************************************
+ */
+int
+PwCSetChecks(PW_C_CONTEXT *psPwCContext, unsigned int uiChecks)
+{
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwCContextIsValid(psPwCContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid context. That should not happen.", NULL);
+    return ER;
+  }
+  PATHWELL_ASSERT(PwCContextIsValid(psPwCContext) == PATHWELL_TRUE);
+
+  psPwCContext->uiChecks = uiChecks;
+
+  return ER_OK;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCSetMaxUse
+ *
+ ***********************************************************************
+ */
+int
+PwCSetMaxUse(PW_C_CONTEXT *psPwCContext, int iMaxUse)
+{
+  unsigned int uiMask = 0;
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwCContextIsValid(psPwCContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid context. That should not happen.", NULL);
+    return ER;
+  }
+  PATHWELL_ASSERT(PwCContextIsValid(psPwCContext) == PATHWELL_TRUE);
+
+  uiMask = PwCGetChecks(psPwCContext);
+
+  if (iMaxUse > 0)
+  {
+    uiMask = uiMask | PATHWELL_MASK_MAXUSE;
+    if (PwCSetChecks(psPwCContext, uiMask) != ER_OK)
+    {
+      PwCSetError(psPwCContext, "Could not enable MaxUse.", NULL);
+      return ER;
+    }
+  }
+  else
+  {
+    uiMask = uiMask & (PATHWELL_MASK_MAXUSE ^ (unsigned int)0xFFFFFFFF);
+    if (PwCSetChecks(psPwCContext, uiMask) != ER_OK)
+    {
+      PwCSetError(psPwCContext, "Could not disable MaxUse.", NULL);
+      return ER;
+    }
+  }
+
+  psPwCContext->iMaxUse = iMaxUse;
+
+  return ER_OK;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCSetMinLen
+ *
+ ***********************************************************************
+ */
+int
+PwCSetMinLen(PW_C_CONTEXT *psPwCContext, int iMinLen)
+{
+  unsigned int uiMask = 0;
+
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwCContextIsValid(psPwCContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid context. That should not happen.", NULL);
+    return ER;
+  }
+  PATHWELL_ASSERT(PwCContextIsValid(psPwCContext) == PATHWELL_TRUE);
+
+  uiMask = PwCGetChecks(psPwCContext);
+
+  if (iMinLen > 0)
+  {
+    uiMask = uiMask | PATHWELL_MASK_MINLEN;
+    if (PwCSetChecks(psPwCContext, uiMask) != ER_OK)
+    {
+      PwCSetError(psPwCContext, "Could not enable MinLen.", NULL);
+      return ER;
+    }
+  }
+  else
+  {
+    uiMask = uiMask & (PATHWELL_MASK_MINLEN ^ (unsigned int)0xFFFFFFFF);
+    if (PwCSetChecks(psPwCContext, uiMask) != ER_OK)
+    {
+      PwCSetError(psPwCContext, "Could not enable MinLen.", NULL);
+      return ER;
+    }
+  }
+
+  psPwCContext->iMinLen = iMinLen;
+
+  return ER_OK;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwCSetMinLev
+ *
+ ***********************************************************************
+ */
+int
+PwCSetMinLev(PW_C_CONTEXT *psPwCContext, int iMinLev)
+{
+  unsigned int uiMask = 0;
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwCContextIsValid(psPwCContext) != PATHWELL_TRUE)
+  {
+    PwCSetError(psPwCContext, "Invalid context. That should not happen.", NULL);
+    return ER;
+  }
+  PATHWELL_ASSERT(PwCContextIsValid(psPwCContext) == PATHWELL_TRUE);
+
+  uiMask = PwCGetChecks(psPwCContext);
+
+  if (iMinLev > 0)
+  {
+    uiMask = uiMask | PATHWELL_MASK_MINLEV;
+    if (PwCSetChecks(psPwCContext, uiMask) != ER_OK)
+    {
+      PwCSetError(psPwCContext, "Could not enable MinLev.", NULL);
+      return ER;
+    }
+  }
+  else
+  {
+    uiMask = uiMask & (PATHWELL_MASK_MINLEV ^ (unsigned int)0xFFFFFFFF);
+    if (PwCSetChecks(psPwCContext, uiMask) != ER_OK)
+    {
+      PwCSetError(psPwCContext, "Could not disable MinLev.", NULL);
+      return ER;
+    }
+  }
+
+  psPwCContext->iMinLev = iMinLev;
+
+  return ER_OK;
+}
+
 
 /*-
  ***********************************************************************
@@ -1889,8 +2677,10 @@ PwDDeleteTriggers(PW_D_CONTEXT *psPwDContext)
  ***********************************************************************
  */
 void
-PwDFreeContext(PW_D_CONTEXT *psPwDContext)
+PwDFreeContext(PW_D_CONTEXT **ppsPwDContext)
 {
+  PW_D_CONTEXT *psPwDContext = *ppsPwDContext;
+
   if (psPwDContext != NULL)
   {
     if
@@ -1912,7 +2702,7 @@ PwDFreeContext(PW_D_CONTEXT *psPwDContext)
       free(psPwDContext->pcDbLock);
     }
     free(psPwDContext);
-    psPwDContext = NULL;
+    *ppsPwDContext = NULL;
   }
 
   return;
@@ -3415,7 +4205,7 @@ PwDSetUseCount(PW_D_CONTEXT *psPwDContext, PW_T_CONTEXT *psPwTContext, unsigned 
    *
    *********************************************************************
    */
-//FIXME Since uiUseCount is unsigned, it will never be less than zero.
+//NOTE: Since uiUseCount is unsigned, it will never be less than zero.
 //      Some compilers will complain about this being an autological
 //      comparison, so the code has been commented out, but retained
 //      as a reminder in case use counts ever become signed integers.
@@ -3582,7 +4372,7 @@ PW_D_CLEANUP:
  ***********************************************************************
  */
 int
-PwDTopologyIsBlacklisted(PW_D_CONTEXT *psPwDContext, char *pcTopology)
+PwDTopologyIsBlacklisted(PW_D_CONTEXT *psPwDContext, const char *pcTopology)
 {
   char *pcSql = NULL;
   const char *pcError = NULL;
@@ -4240,8 +5030,10 @@ PwLContextIsValid(PW_L_CONTEXT *psPwLContext)
  ***********************************************************************
  */
 void
-PwLFreeContext(PW_L_CONTEXT *psPwLContext)
+PwLFreeContext(PW_L_CONTEXT **ppsPwLContext)
 {
+  PW_L_CONTEXT *psPwLContext = *ppsPwLContext;
+
   if (psPwLContext != NULL)
   {
     if
@@ -4255,7 +5047,7 @@ PwLFreeContext(PW_L_CONTEXT *psPwLContext)
       free(psPwLContext->pcError);
     }
     free(psPwLContext);
-    psPwLContext = NULL;
+    *ppsPwLContext = NULL;
   }
   return;
 }
@@ -4395,11 +5187,13 @@ PwLNewContextFromParameters(PW_T_CONTEXT *psPwTContextA, PW_T_CONTEXT *psPwTCont
     PwLSetError(psPwLContext, "Invalid member context (A).", NULL);
     return psPwLContext;
   }
+  PATHWELL_ASSERT(PwTContextIsValid(psPwTContextA) == PATHWELL_TRUE);
   if (!PwTContextIsValid(psPwTContextB))
   {
     PwLSetError(psPwLContext, "Invalid member context (B).", NULL);
     return psPwLContext;
   }
+  PATHWELL_ASSERT(PwTContextIsValid(psPwTContextB) == PATHWELL_TRUE);
   psPwLContext->psPwTContextA = psPwTContextA;
   psPwLContext->psPwTContextB = psPwTContextB;
 
@@ -4494,6 +5288,120 @@ PwLSetPwTContextB(PW_L_CONTEXT *psPwLContext, PW_T_CONTEXT *psPwTContext)
   return PwLSetPwTContext(psPwLContext, psPwTContext, 'B');
 }
 
+/*-
+ **********************************************************************
+ *
+ * PwTBaseNp1IdOk
+ *
+ **********************************************************************
+ */
+int
+PwTBaseNp1IdOk(PW_T_CONTEXT *psPwTContext)
+{
+  char *pcTokens = NULL;
+  int i = 0;
+  int iBaseNp1 = 0;
+  int iTopologySize = 0;
+  int64_t i64Q = 0;
+  int64_t i64R = 0;
+  int64_t i64Value = 0;
+
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwTContextIsValid(psPwTContext) == PATHWELL_FALSE)
+  {
+    PwTSetError(psPwTContext, "Invalid context. That should not happen.", NULL);
+    return PATHWELL_FALSE;
+  }
+  PATHWELL_ASSERT(PwTContextIsValid(psPwTContext) == PATHWELL_TRUE);
+
+  /*-
+   *********************************************************************
+   *
+   * A valid token set is required.
+   *
+   *********************************************************************
+   */
+  switch (PwTGetTokenSet(psPwTContext))
+  {
+  case PATHWELL_TOKEN_SET_ID_1:
+  case PATHWELL_TOKEN_SET_ID_2:
+  case PATHWELL_TOKEN_SET_ID_3:
+  case PATHWELL_TOKEN_SET_ID_4:
+    break;
+  default:
+    PwTSetError(psPwTContext, "Invalid or unsupported token set.", NULL);
+    return PATHWELL_FALSE;
+    break;
+  }
+
+  /*-
+   ********************************************************************
+   *
+   * Handle the only special case (i.e., ?z).
+   *
+   ********************************************************************
+   */
+  if (PwTGetId(psPwTContext) == 0)
+  {
+    return PATHWELL_TRUE;
+  }
+
+  /*-
+   ********************************************************************
+   *
+   * Reject IDs that fall outside the allowed range.
+   *
+   ********************************************************************
+   */
+  if (PwTGetId(psPwTContext) < PATHWELL_MIN_BASENP1_ID || PwTGetId(psPwTContext) > PATHWELL_MAX_BASENP1_ID)
+  {
+    PwTSetError(psPwTContext, "Topology ID falls outside the allowed range.", NULL);
+    return PATHWELL_TRUE;
+  }
+
+  /*
+   ********************************************************************
+   *
+   * Attempt to perform the conversion.
+   *
+   ********************************************************************
+   */
+  pcTokens = PwTGetTokenSetTokens(psPwTContext);
+  if (pcTokens == NULL)
+  {
+    return PATHWELL_FALSE; // Note: Error message already set.
+  }
+  iBaseNp1 = strlen(pcTokens) + 1;
+  i64Value = PwTGetId(psPwTContext);
+  do
+  {
+    i64Q = i64Value / iBaseNp1;
+    i64R = i64Value % iBaseNp1;
+    if (i64Q > 0 && i64R == 0)
+    {
+      PwTSetError(psPwTContext, "Invalid baseN+1 topology ID.", NULL);
+      return PATHWELL_FALSE;
+    }
+    else
+    {
+      if (i64R < 1 || i64R > 7)
+      {
+        PwTSetError(psPwTContext, "Invalid token. That should not happen.", NULL);
+        return PATHWELL_FALSE;
+      }
+    }
+    i64Value = i64Q;
+  } while (i64Q > 0);
+
+  return PATHWELL_TRUE;
+}
+
 
 /*-
  **********************************************************************
@@ -4506,6 +5414,7 @@ int
 PwTBaseNp1IdToTopology(PW_T_CONTEXT *psPwTContext)
 {
   char cTemp = 0;
+  char *pcTempTopology = NULL;
   char *pcTokens = NULL;
   char *pcTopology = NULL;
   int i = 0;
@@ -4596,6 +5505,10 @@ PwTBaseNp1IdToTopology(PW_T_CONTEXT *psPwTContext)
     if (i64Q > 0 && i64R == 0)
     {
       PwTSetError(psPwTContext, "Invalid baseN+1 topology ID.", NULL);
+      if (pcTopology != NULL)
+      {
+        free(pcTopology);
+      }
       return ER;
     }
     else
@@ -4608,12 +5521,17 @@ PwTBaseNp1IdToTopology(PW_T_CONTEXT *psPwTContext)
       {
         iTopologySize += 2;
       }
-      pcTopology = (char *)realloc(pcTopology, iTopologySize + 1);
-      if (pcTopology == NULL)
+      pcTempTopology = (char *)realloc(pcTopology, iTopologySize + 1);
+      if (pcTempTopology == NULL)
       {
         PwTSetError(psPwTContext, "Failed to allocate memory (%s).", strerror(errno), NULL);
+        if (pcTopology != NULL)
+        {
+          free(pcTopology);
+        }
         return ER;
       }
+      pcTopology = pcTempTopology;
       PATHWELL_ASSERT(pcTopology != NULL);
       pcTopology[iTopologySize-2] = '?';
       switch (i64R)
@@ -4641,6 +5559,10 @@ PwTBaseNp1IdToTopology(PW_T_CONTEXT *psPwTContext)
         break;
       default:
         PwTSetError(psPwTContext, "Invalid token. That should not happen.", NULL);
+        if (pcTopology != NULL)
+        {
+          free(pcTopology);
+        }
         return ER;
         break;
       }
@@ -4657,8 +5579,159 @@ PwTBaseNp1IdToTopology(PW_T_CONTEXT *psPwTContext)
   }
 
   PwTSetTopology(psPwTContext, pcTopology);
+  if (pcTopology != NULL)
+  {
+    free(pcTopology);
+  }
 
   return ER_OK;
+}
+
+
+/*-
+ **********************************************************************
+ *
+ * PwTBitmaskIdOk
+ *
+ **********************************************************************
+ */
+int
+PwTBitmaskIdOk(PW_T_CONTEXT *psPwTContext)
+{
+  int i = 0;
+  int iBitsPerToken = 0;
+  int iNumShifts = 0;
+  int iTopologySize = 0;
+  int64_t i64Id = 0;
+  uint64_t ui64BinaryTokens = 0;
+  uint64_t ui64Temp = 0;
+  unsigned int uiTopologyLength = 0;
+
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwTContextIsValid(psPwTContext) == PATHWELL_FALSE)
+  {
+    PwTSetError(psPwTContext, "Invalid context. That should not happen.", NULL);
+    return PATHWELL_FALSE;
+  }
+  PATHWELL_ASSERT(PwTContextIsValid(psPwTContext) == PATHWELL_TRUE);
+
+  /*-
+   *********************************************************************
+   *
+   * A valid token set is required.
+   *
+   *********************************************************************
+   */
+  switch (PwTGetTokenSet(psPwTContext))
+  {
+  case PATHWELL_TOKEN_SET_ID_1:
+    iBitsPerToken = 2;
+    break;
+  case PATHWELL_TOKEN_SET_ID_2:
+  case PATHWELL_TOKEN_SET_ID_3:
+  case PATHWELL_TOKEN_SET_ID_4:
+    iBitsPerToken = 3;
+    break;
+  default:
+    PwTSetError(psPwTContext, "Invalid or unsupported token set.", NULL);
+    return PATHWELL_FALSE;
+    break;
+  }
+
+  /*-
+   ********************************************************************
+   *
+   * Handle the only special case (i.e., ?z).
+   *
+   ********************************************************************
+   */
+  if (PwTGetId(psPwTContext) == 0)
+  {
+    return PATHWELL_TRUE;
+  }
+
+  /*-
+   ********************************************************************
+   *
+   * Reject IDs that fall outside the allowed range.
+   *
+   ********************************************************************
+   */
+  if (PwTGetId(psPwTContext) < PATHWELL_MIN_BITMASK_ID || PwTGetId(psPwTContext) > PATHWELL_MAX_BITMASK_ID)
+  {
+    PwTSetError(psPwTContext, "Topology ID falls outside the allowed range.", NULL);
+    return PATHWELL_FALSE;
+  }
+
+  /*
+   ********************************************************************
+   *
+   * Read the declared length of the topology.
+   *
+   ********************************************************************
+   */
+  i64Id = PwTGetId(psPwTContext);
+  for (iNumShifts = 0; iNumShifts < 63-6; iNumShifts++)
+  {
+    if ((((uint64_t)(i64Id << iNumShifts) >> 63) & 0x1) == 1) // Found the high bit.
+    {
+      uiTopologyLength = ((uint64_t)i64Id >> (63 - 6 - iNumShifts + 1)) & 0b11111; // Read the length of the topology from the fields index [1-5].
+      break;
+    }
+  }
+
+  /*-
+   ********************************************************************
+   *
+   * Check to make sure the declared topology length matches the
+   * actual topology length.
+   *
+   ********************************************************************
+   */
+  if (63-5-iNumShifts != uiTopologyLength*iBitsPerToken)
+  {
+    PwTSetError(psPwTContext, "Invalid topology ID.", NULL);
+    return PATHWELL_FALSE;
+  }
+
+  /*-
+   ********************************************************************
+   *
+   * Perform the bulk of the conversion computation.
+   *
+   ********************************************************************
+   */
+  ui64BinaryTokens = ((uint64_t)i64Id << (iNumShifts + 1 + 5)) >> (iNumShifts + 1 + 5);
+  for (i = 0; i < uiTopologyLength; i++)
+  {
+    ui64Temp = ui64BinaryTokens >> (uiTopologyLength - i - 1) * iBitsPerToken;
+    if (iBitsPerToken == 2)
+    {
+      ui64Temp = ui64Temp & 3;
+      if (ui64Temp < 0 || ui64Temp > 3)
+      {
+        PwTSetError(psPwTContext, "Invalid token. That should not happen.", NULL);
+        return PATHWELL_FALSE;
+      }
+    }
+    else
+    {
+      ui64Temp = ui64Temp & 7;
+      if (ui64Temp < 0 || ui64Temp > 6)
+      {
+        PwTSetError(psPwTContext, "Invalid token. That should not happen.", NULL);
+        return PATHWELL_FALSE;
+      }
+    }
+  }
+
+  return PATHWELL_TRUE;
 }
 
 
@@ -4676,7 +5749,6 @@ PwTBitmaskIdToTopology(PW_T_CONTEXT *psPwTContext)
   int i = 0;
   int iBitsPerToken = 0;
   int iNumShifts = 0;
-  int iTemp = 0;
   int iTopologySize = 0;
   int64_t i64Id = 0;
   uint64_t ui64BinaryTokens = 0;
@@ -4785,7 +5857,12 @@ PwTBitmaskIdToTopology(PW_T_CONTEXT *psPwTContext)
    ********************************************************************
    */
   ui64BinaryTokens = ((uint64_t)i64Id << (iNumShifts + 1 + 5)) >> (iNumShifts + 1 + 5);
-  pcTopology = (char *)realloc(pcTopology, sizeof(char)*(2*uiTopologyLength)+1);
+  pcTopology = (char *)realloc(NULL, sizeof(char) * (2 * uiTopologyLength) + 1);
+  if (pcTopology == NULL)
+  {
+    PwTSetError(psPwTContext, "Failed to allocate memory (%s).", strerror(errno), NULL);
+    return ER;
+  }
   for (i = 0; i < uiTopologyLength; i++)
   {
     ui64Temp = ui64BinaryTokens >> (uiTopologyLength - i - 1) * iBitsPerToken;
@@ -4809,6 +5886,10 @@ PwTBitmaskIdToTopology(PW_T_CONTEXT *psPwTContext)
         break;
       default:
         PwTSetError(psPwTContext, "Invalid token. That should not happen.", NULL);
+        if (pcTopology != NULL)
+        {
+          free(pcTopology);
+        }
         return ER;
         break;
       }
@@ -4841,6 +5922,10 @@ PwTBitmaskIdToTopology(PW_T_CONTEXT *psPwTContext)
         break;
       default:
         PwTSetError(psPwTContext, "Invalid token. That should not happen.", NULL);
+        if (pcTopology != NULL)
+        {
+          free(pcTopology);
+        }
         return ER;
         break;
       }
@@ -4848,6 +5933,10 @@ PwTBitmaskIdToTopology(PW_T_CONTEXT *psPwTContext)
   }
   pcTopology[2*uiTopologyLength] = '\0';
   PwTSetTopology(psPwTContext, pcTopology);
+  if (pcTopology != NULL)
+  {
+    free(pcTopology);
+  }
 
   return ER_OK;
 }
@@ -4903,8 +5992,10 @@ PwTContextIsValid(PW_T_CONTEXT *psPwTContext)
  ***********************************************************************
  */
 void
-PwTFreeContext(PW_T_CONTEXT *psPwTContext)
+PwTFreeContext(PW_T_CONTEXT **ppsPwTContext)
 {
+  PW_T_CONTEXT *psPwTContext = *ppsPwTContext;
+
   if (psPwTContext != NULL)
   {
     if
@@ -4930,7 +6021,7 @@ PwTFreeContext(PW_T_CONTEXT *psPwTContext)
       free(psPwTContext->pi64Id);
     }
     free(psPwTContext);
-    psPwTContext = NULL;
+    *ppsPwTContext = NULL;
   }
 
   return;
@@ -5101,6 +6192,34 @@ PwTGetTopology(PW_T_CONTEXT *psPwTContext)
   PATHWELL_ASSERT(PwTContextIsValid(psPwTContext) == PATHWELL_TRUE);
 
   return psPwTContext->pcTopology;
+}
+
+
+/*-
+ ***********************************************************************
+ *
+ * PwTIdOk
+ *
+ ***********************************************************************
+ */
+int
+PwTIdOk(PW_T_CONTEXT *psPwTContext)
+{
+  /*-
+   *********************************************************************
+   *
+   * A valid context is required.
+   *
+   *********************************************************************
+   */
+  if (PwTContextIsValid(psPwTContext) == PATHWELL_FALSE)
+  {
+    PwTSetError(psPwTContext, "Invalid context. That should not happen.", NULL);
+    return ER;
+  }
+  PATHWELL_ASSERT(PwTContextIsValid(psPwTContext) == PATHWELL_TRUE);
+
+  return (PwTGetEncoding(psPwTContext) == PATHWELL_ENCODING_BITMASK) ? PwTBitmaskIdOk(psPwTContext) : PwTBaseNp1IdOk(psPwTContext);
 }
 
 

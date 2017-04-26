@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwSChomp.c,v 1.3.2.4 2015/09/30 17:54:50 klm Exp $
+ * $Id: api_PwSChomp.c,v 1.8 2017/04/20 13:23:39 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2017 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -20,8 +20,9 @@
 #endif
 #include <inttypes.h>
 #include <pathwell.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <tap.h>
 
@@ -269,6 +270,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
         pcChompedString
       );
       ok(strcmp(asTuples[iIndex].acOutput, pcChompedString) == 0, "%s", acDescription);
+      free(pcChompedString);
     }
     else
     {

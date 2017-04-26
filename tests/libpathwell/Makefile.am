@@ -1,5 +1,6 @@
 
 check_PROGRAMS = \
+	api_PwCAllCheck \
 	api_PwDClearUseCount \
 	api_PwDCreateSchema \
 	api_PwDDecrementUseCount \
@@ -8,9 +9,13 @@ check_PROGRAMS = \
 	api_PwDLoadBlacklistedTopologies \
 	api_PwDTopologyIsBlacklisted \
 	api_PwDVerifySchema \
+	api_PwHGenHint \
+	api_PwHGenNearbyPassword \
+	api_PwHGenNearbyTopology \
 	api_PwLCalcLevDistance \
 	api_PwLCheckLevDistance \
 	api_PwSBaseNTo63Bit \
+	api_PwSAppendToDynamicString \
 	api_PwSChomp \
 	api_PwSDirname \
 	api_PwSLevenshteinDistance \
@@ -23,6 +28,10 @@ check_PROGRAMS = \
 	api_PwVGetReleaseString
 
 EXTRA_DIST = $(TESTS)
+
+api_PwCAllCheck_CFLAGS = -g -I../../include @sqlite_cflags@ @tap_cflags@
+api_PwCAllCheck_LDADD = -lpathwell @tap_ldadd@
+api_PwCAllCheck_LDFLAGS = -L$(top_builddir)/src/libpathwell/.libs @tap_ldflags@
 
 api_PwDClearUseCount_CFLAGS = -g -I../../include @sqlite_cflags@ @tap_cflags@
 api_PwDClearUseCount_LDADD = -lpathwell @tap_ldadd@
@@ -56,6 +65,18 @@ api_PwDVerifySchema_CFLAGS = -g -I../../include @sqlite_cflags@ @tap_cflags@
 api_PwDVerifySchema_LDADD = -lpathwell @tap_ldadd@
 api_PwDVerifySchema_LDFLAGS = -L$(top_builddir)/src/libpathwell/.libs @tap_ldflags@
 
+api_PwHGenHint_CFLAGS = -g -I../../include @sqlite_cflags@ @tap_cflags@
+api_PwHGenHint_LDADD = -lpathwell @tap_ldadd@
+api_PwHGenHint_LDFLAGS = -L$(top_builddir)/src/libpathwell/.libs @tap_ldflags@
+
+api_PwHGenNearbyPassword_CFLAGS = -g -I../../include @sqlite_cflags@ @tap_cflags@
+api_PwHGenNearbyPassword_LDADD = -lpathwell @tap_ldadd@
+api_PwHGenNearbyPassword_LDFLAGS = -L$(top_builddir)/src/libpathwell/.libs @tap_ldflags@
+
+api_PwHGenNearbyTopology_CFLAGS = -g -I../../include @sqlite_cflags@ @tap_cflags@
+api_PwHGenNearbyTopology_LDADD = -lpathwell @tap_ldadd@
+api_PwHGenNearbyTopology_LDFLAGS = -L$(top_builddir)/src/libpathwell/.libs @tap_ldflags@
+
 api_PwLCalcLevDistance_CFLAGS = -g -I../../include @sqlite_cflags@ @tap_cflags@
 api_PwLCalcLevDistance_LDADD = -lpathwell @tap_ldadd@
 api_PwLCalcLevDistance_LDFLAGS = -L$(top_builddir)/src/libpathwell/.libs @tap_ldflags@
@@ -67,6 +88,10 @@ api_PwLCheckLevDistance_LDFLAGS = -L$(top_builddir)/src/libpathwell/.libs @tap_l
 api_PwSBaseNTo63Bit_CFLAGS = -g -I../../include @gmp_cflags@ @sqlite_cflags@ @tap_cflags@
 api_PwSBaseNTo63Bit_LDADD = -lpathwell -lgmp @tap_ldadd@
 api_PwSBaseNTo63Bit_LDFLAGS = -L$(top_builddir)/src/libpathwell/.libs @tap_ldflags@
+
+api_PwSAppendToDynamicString_CFLAGS = -g -I../../include @sqlite_cflags@ @tap_cflags@
+api_PwSAppendToDynamicString_LDADD = -lpathwell @tap_ldadd@
+api_PwSAppendToDynamicString_LDFLAGS = -L$(top_builddir)/src/libpathwell/.libs @tap_ldflags@
 
 api_PwSChomp_CFLAGS = -g -I../../include @sqlite_cflags@ @tap_cflags@
 api_PwSChomp_LDADD = -lpathwell @tap_ldadd@

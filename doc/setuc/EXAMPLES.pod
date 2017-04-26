@@ -1,0 +1,21 @@
+
+=head1 EXAMPLES
+
+=head2 Example 1. Basic Update Using Topologies
+
+The command shown below sets the use count to five for the topology
+IDs that correspond to the specified topologies.  The updated
+database is named 'PathWellTest.db'.  Note that the default encoding
+scheme and token sets are used.
+
+    $ pathwell-setuc -c 5 -d PathWellTest.db '?u?l?l?l?l?l?d?d?d?d?s' '?s?u?l?l?l?l?l?d?d?d?d?s'
+
+=head2 Example 2. Basic Update Using Passwords
+
+The command shown below sets the use count to five for the topology
+IDs that correspond to the specified passwords.  The updated database
+is named 'PathWellTest.db'.  Note that the default encoding scheme
+and token sets are used.
+
+    $ pathwell-setuc -p -c 5 -d PathWellTest.db 'Summer2013!' '!Summer2013'
+

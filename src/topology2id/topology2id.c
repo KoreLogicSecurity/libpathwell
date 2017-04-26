@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: topology2id.c,v 1.60.2.1 2015/09/30 16:05:54 klm Exp $
+ * $Id: topology2id.c,v 1.64 2017/04/19 16:16:05 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2017 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -280,7 +280,7 @@ AppCleanProperties(PROPERTIES *psProperties)
     {
       fclose(psProperties->pInputFile);
     }
-    PwTFreeContext(psProperties->psPwTContext);
+    PwTFreeContext(&psProperties->psPwTContext);
     free(psProperties);
   }
   return;
@@ -338,14 +338,15 @@ AppUsage(void)
                         File containing items, one per line, to be converted.\n\
                         A value of '-' causes the program to read from stdin.\n\
   -s <token-set>\n\
-                        The ID (1-4) of the token set to use for conversions.\n\
-                        The following token sets are supported: 1) [dlus], 2)\n\
-                        [dlusf], 3) [dlusfx], and 4) [dlusfxH]. The default\n\
-                        value is '1'.\n\
+                        ID of the token set to use for performing conversions.\n\
+                        The following token sets are supported:\n\
+                          1) [dlus] (default)\n\
+                          2) [dlusf]\n\
+                          3) [dlusfx]\n\
+                          4) [dlusfxH]\n\
   -t <encoding-type>\n\
-                        The type of encoding to use for conversions. Must be\n\
-                        one of 'baseN+1' or 'bitmask'. The default value is\n\
-                        'baseN+1'.\n\
+                        Type of encoding to use for conversions. Must be one of\n\
+                        'baseN+1' or 'bitmask'. The default value is 'baseN+1'.\n\
 \n"
   );
   fprintf(stderr, "\n");

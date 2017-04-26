@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: app-includes.h,v 1.5.2.1 2015/09/30 16:05:53 klm Exp $
+ * $Id: app-includes.h,v 1.8 2017/04/20 13:23:39 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2017 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -19,6 +19,9 @@
 #define _APP_INCLUDES_H_INCLUDED
 
 #include <gmp.h>
+#ifdef USE_JSON
+#include <jansson.h>
+#endif
 #include <pathwell.h>
 #include <pcre.h>
 

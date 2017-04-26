@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwSDirname.c,v 1.1.2.4 2015/09/30 16:05:55 klm Exp $
+ * $Id: api_PwSDirname.c,v 1.5 2017/04/20 13:23:39 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2017 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -21,8 +21,8 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <pathwell.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <tap.h>
@@ -138,62 +138,62 @@ main(int iArgumentCount, char *ppcArgumentVector[])
     { "c:/",                   "c:/" },
     { "c://",                  "c:/" },
     { "c:///",                 "c:/" },
- 
+
     { "c::",                   "c:/" }, /* FIXME What should the expected value be here? */
     { "c::/",                  "c:/" }, /* FIXME What should the expected value be here? */
     { "c:://",                 "c:/" }, /* FIXME What should the expected value be here? */
     { "c::///",                "c:/" }, /* FIXME What should the expected value be here? */
- 
+
     { "c:::",                  "c:/" }, /* FIXME What should the expected value be here? */
     { "c:::/",                 "c:/" }, /* FIXME What should the expected value be here? */
     { "c::://",                "c:/" }, /* FIXME What should the expected value be here? */
     { "c:::///",               "c:/" }, /* FIXME What should the expected value be here? */
- 
+
     { "c:abc",                 "c:/" }, /* FIXME What should the expected value be here? */
     { "c:abc/",                "c:/" }, /* FIXME What should the expected value be here? */
     { "c:abc//",               "c:/" }, /* FIXME What should the expected value be here? */
     { "c:abc///",              "c:/" }, /* FIXME What should the expected value be here? */
- 
+
     { "c:/abc",                "c:/" },
     { "c:/abc/",               "c:/" },
     { "c:/abc//",              "c:/" },
     { "c:/abc///",             "c:/" },
- 
+
     { "c://abc",               "c:/" },
     { "c://abc/",              "c:/" },
     { "c://abc//",             "c:/" },
     { "c://abc///",            "c:/" },
- 
+
     { "c:///abc",              "c:/" },
     { "c:///abc/",             "c:/" },
     { "c:///abc//",            "c:/" },
     { "c:///abc///",           "c:/" },
- 
+
     { "c:/abc/123",         "c:/abc" },
     { "c:/abc/123/",        "c:/abc" },
     { "c:/abc/123//",       "c:/abc" },
     { "c:/abc/123///",      "c:/abc" },
- 
+
     { "c://abc/123",       "c://abc" },
     { "c://abc/123/",      "c://abc" },
     { "c://abc/123//",     "c://abc" },
     { "c://abc/123///",    "c://abc" },
- 
+
     { "c:///abc/123",     "c:///abc" },
     { "c:///abc/123/",    "c:///abc" },
     { "c:///abc/123//",   "c:///abc" },
     { "c:///abc/123///",  "c:///abc" },
- 
+
     { "c:/abc//123",        "c:/abc" },
     { "c:/abc//123/",       "c:/abc" },
     { "c:/abc//123//",      "c:/abc" },
     { "c:/abc//123///",     "c:/abc" },
- 
+
     { "c://abc//123",      "c://abc" },
     { "c://abc//123/",     "c://abc" },
     { "c://abc//123//",    "c://abc" },
     { "c://abc//123///",   "c://abc" },
- 
+
     { "c:///abc//123",    "c:///abc" },
     { "c:///abc//123/",   "c:///abc" },
     { "c:///abc//123//",  "c:///abc" },

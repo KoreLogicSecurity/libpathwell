@@ -4,6 +4,6 @@
 This utility lists the tables in a PathWell database, or exports one
 or more of those tables as CSV output.
 
-Tools such as pathwell-id2topology may be useful for decoding the raw
-output.
+Tools such as B<pathwell-id2topology(1)> may be useful for decoding
+the raw output.
 

@@ -1,0 +1,15 @@
+
+=head1 DESCRIPTION
+
+This utility tests a user-specified password or password pair
+(old/new) for conformance with the various PathWell enforcement
+checks (e.g., minlen, minlev, maxuse, etc.).  Diagnostic information
+is then written to stdout.
+
+Note: This utility is intended for testing purposes only.  More
+specifically, be advised that it is not safe to run this utility
+on a multiuser system with real data since any passwords passed
+as arguments on the command line may be visible to other users on
+the system.  Such passwords will also end up in history files,
+and thus are at risk of unwanted/accidental exposure.
+

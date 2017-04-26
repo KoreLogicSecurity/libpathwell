@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwSLevenshteinDistance.c,v 1.1.2.5 2015/09/30 17:54:51 klm Exp $
+ * $Id: api_PwSLevenshteinDistance.c,v 1.6 2017/04/18 22:12:51 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2017 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms

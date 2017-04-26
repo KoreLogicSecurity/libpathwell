@@ -4,11 +4,11 @@ eval 'exec perl -x ${0} ${1+"${@}"} ;'
   if (0);
 ######################################################################
 #
-# $Id: test.t,v 1.10.2.5 2015/09/30 16:05:55 klm Exp $
+# $Id: test.t,v 1.14 2017/04/18 22:12:52 klm Exp $
 #
 ######################################################################
 #
-# Copyright 2013-2015 The PathWell Project, All Rights Reserved.
+# Copyright 2013-2017 The PathWell Project, All Rights Reserved.
 #
 # This software, having been partly or wholly developed and/or
 # sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -18,7 +18,7 @@ eval 'exec perl -x ${0} ${1+"${@}"} ;'
 #
 ######################################################################
 #
-# Purpose: Tests for KoreLogic::PathWell::PwTRoutines.
+# Purpose: Tests for pw2id.
 #
 ######################################################################
 

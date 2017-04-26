@@ -1,18 +1,59 @@
 
 =head1 EXAMPLES
 
-=head2 Example 1. BaseN+1 mode (default), charsets ?d, ?l, ?u, ?s (default)
+=head2 Example 1. BaseN+1 ID Conversion Using Default Token Set
+
+The command shown below converts the specified ID (i.e., 2184) to
+a corresponding topology (i.e., '?u?l?l?d?s').  This conversion is
+performed using the default token set (i.e., [dlus]) and encoding
+(i.e., 'baseN+1').
 
     $ pathwell-id2topology 2184
     ID='2184'; Topology='?u?l?l?d?s';
 
-=head2 Example 2. Bitmask mode, charsets ?d, ?l, ?u, ?s
+=head2 Example 2. Multiple BaseN+1 ID Conversions Using Default Token Set
+
+The command shown below converts a list of IDs, supplied on stdin,
+to their corresponding topologies.  The default token set and
+encoding are used.
+
+    $ for value in '0' '2014' '2184' ; do \
+    >   echo ${value} | pathwell-id2topology -f - ; \
+    > done
+    ID='0'; Topology='?z';
+    ID='2014'; Topology='undef'; Error='Invalid baseN+1 topology ID.';
+    ID='2184'; Topology='?u?l?l?d?s';
+
+If the IDs had been listed (one per line) in a file named 'input.list',
+the same results could be achieved with:
+
+    $ pathwell-id2topology -f input.list
+    ID='0'; Topology='?z';
+    ID='2014'; Topology='undef'; Error='Invalid baseN+1 topology ID.';
+    ID='2184'; Topology='?u?l?l?d?s';
+
+Things worth noting: 1) '?z' is a special token that represents
+an empty password and 2) not all IDs map to valid topologies.
+As the output above shows, the topology that corresponds to ID 2014
+is undefined.  This is because baseN+1 IDs are not contiguous.
+
+=head2 Example 3. Bitmask ID Conversion Using Default Token Set
+
+The command shown below converts the specified ID (i.e., 38483) to
+a corresponding topology (i.e., '?u?l?l?d?s').  This conversion is
+performed using the default token set (i.e., [dlus]) and bitmask
+encoding.
 
     $ pathwell-id2topology -t bitmask 38483
     ID='38483'; Topology='?u?l?l?d?s';
 
-=head2 Example 3. Bitmask mode, charsets ?d, ?l, ?u, ?s, ?f, ?x, STDIN
+=head2 Example 4. Bitmask ID Conversion Using Alternate Token Set
 
-    echo '1222725' | pathwell-id2topology -t bitmask -s 3 -f -
+The command shown below converts the specified ID (i.e., 1222725)
+to a corresponding topology (i.e., '?u?f?l?d?x').  This conversion
+is performed using an alternate token set (i.e., [dlusfx]) and
+bitmask encoding.
+
+    $ pathwell-id2topology -t bitmask -s 3 1222725
     ID='1222725'; Topology='?u?f?l?d?x';
 

@@ -1,15 +1,25 @@
 
 =head1 EXAMPLES
 
-=head2 Example 1. Create a DB in `pwd`
+=head2 Example 1. Create PathWell Database in Current Directory
 
-    $ pathwell-create-db -d PathWell.db
+The command shown below creates a new PathWell test database in the
+current directory.
 
-=head2 Example 2. Create a DB in the standard directory, mkdir'ing if necessary
+    $ pathwell-create-db -d PathWellTest.db
 
-    $ pathwell-create-db -c -d /var/lib/PathWell/PathWell.db
+=head2 Example 2. Create PathWell Database in the Standard System Directory
 
-=head2 Example 3. Create a DB in `pwd` with an alternate blacklist file
+The command shown below creates a new PathWell test database in
+the standard system directory.  The B<-c> option ensures that
+intermediate directories are automatically created if missing.
 
-    $ pathwell-create-db -f my_blacklist -d PathWell.db
+    $ pathwell-create-db -c -d /var/lib/PathWell/PathWellTest.db
+
+=head2 Example 3. Create PathWell Database Using Alternate Blacklist File
+
+The command shown below creates a new PathWell test database in the
+current directory with a custom blacklist file called 'test_blacklist'.
+
+    $ pathwell-create-db -f test_blacklist -d PathWellTest.db
 

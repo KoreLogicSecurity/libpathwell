@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwLCheckLevDistance.c,v 1.6.2.4 2015/09/30 17:54:50 klm Exp $
+ * $Id: api_PwLCheckLevDistance.c,v 1.10 2017/04/19 16:16:05 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2017 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -299,9 +299,9 @@ main(int iArgumentCount, char *ppcArgumentVector[])
     }
   }
 
-  PwLFreeContext(psPwLContext);
-  PwTFreeContext(psPwTContextA);
-  PwTFreeContext(psPwTContextB);
+  PwLFreeContext(&psPwLContext);
+  PwTFreeContext(&psPwTContextA);
+  PwTFreeContext(&psPwTContextB);
 
   return exit_status();
 }

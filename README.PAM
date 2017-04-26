@@ -1,7 +1,7 @@
 
 REVISION
 
-  $Id: README.PAM,v 1.20.2.7 2015/07/29 20:00:37 hlein Exp $
+  $Id: README.PAM,v 1.22 2017/04/12 18:21:45 klm Exp $
 
 OVERVIEW
 
@@ -15,12 +15,12 @@ OVERVIEW
   passwords fitting some conventional strength rules (such as minimum
   length, minimum number of character sets), they tend to gravitate
   towards common topologies.  Password cracking tools incorporate this
-  (called "masks" in oclHashcat, for example).  A set of password
+  (called "masks" in Hashcat, for example).  A set of password
   hashes with a slow (difficult) cipher, or a set of very long
   (14-character or more) passwords may be infeasible to blindly crack,
   but by focusing on only 1-5 most popular topologies, an attacker
   might crack 5-10% or more of an enterprise's user passwords in hours
-  or days instead of years of effort.
+  or days instead of months or years of effort.
 
   Password crackers would have a far lower success rate if topologies
   could not be reused by multiple users.  PathWell provides tools to
@@ -121,7 +121,8 @@ CONFIGURATION
   - The minlev option is greater than zero, and the proposed new
     password topology is too similar to the one associated with the
     previous password (see pam_pathwell(8) for more details about
-    Lev distances).  Note that this option is disabled by default.
+    Levenshtein distances).  Note that this option is disabled by
+    default.
 
   - The maxuse option is greater than zero, and the topology of the
     proposed new password is already in use by the maximum number of
@@ -131,9 +132,8 @@ CONFIGURATION
     tracked (see the notes about combining modes below).  Also note
     that this option is enabled by default with a value of one.
 
-  To enable enforcement with blacklists enabled, add the line
-  provided below to the module stack for the password management
-  group:
+  To enable enforcement with blacklists, add the line provided below
+  to the module stack for the password management group:
 
     password required pam_pathwell.so mode=enforce use_authtok blacklist
 

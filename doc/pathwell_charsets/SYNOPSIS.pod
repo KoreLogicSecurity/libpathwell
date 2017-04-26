@@ -1,5 +1,5 @@
 
 =head1 SYNOPSIS
 
-Character sets / classes supported by PathWell.
+Token sets / character classes supported by PathWell.
 

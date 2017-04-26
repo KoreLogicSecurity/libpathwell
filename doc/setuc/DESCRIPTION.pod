@@ -1,0 +1,9 @@
+
+=head1 DESCRIPTION
+
+This utility reads one or more topologies (or optionally passwords
+(B<-p>)) from the command line and/or a specified file (B<-f>),
+converts them to topology IDs using the default or specified token
+set (B<-s>) and encoding (B<-t>), and updates the corresponding
+use counts in the specified database (B<-d>).
+

@@ -1,18 +1,54 @@
 
 =head1 EXAMPLES
 
-=head2 Example 1. BaseN+1 mode (default), charsets ?d, ?l, ?u, ?s (default)
+=head2 Example 1. BaseN+1 Topology Conversion Using Default Token Set
+
+The command shown below converts the specified topology (i.e.,
+'?u?l?l?d?s') to a corresponding ID (i.e., 2184).  This conversion
+is performed using the default token set (i.e., [dlus]) and encoding
+(i.e., 'baseN+1').
 
     $ pathwell-topology2id '?u?l?l?d?s'
     Topology='?u?l?l?d?s'; ID='2184';
 
-=head2 Example 2. Bitmask mode, charsets ?d, ?l, ?u, ?s
+=head2 Example 2. Multiple BaseN+1 Topology Conversion Using Default Token Set
+
+The command shown below converts a list of topologies, supplied
+on stdin, to their corresponding IDs.  The default token set and
+encoding are used.
+
+    $ for value in '?z' '?u?l?l?d?s' '?s?s?d?l?u' ; do \
+    >   echo ${value} | pathwell-topology2id -f - ; \
+    > done
+    Topology='?z'; ID='0';
+    Topology='?u?l?l?d?s'; ID='2184';
+    Topology='?s?s?d?l?u'; ID='3038';
+
+If the topologies had been listed (one per line) in a file named
+'input.list', the same results could be achieved with:
+
+    $ pathwell-topology2id -f input.list
+    Topology='?z'; ID='0';
+    Topology='?u?l?l?d?s'; ID='2184';
+    Topology='?s?s?d?l?u'; ID='3038';
+
+=head2 Example 3. Bitmask Topology Conversion Using Default Token Set
+
+The command shown below converts the specified topology (i.e.,
+'?u?l?l?d?s') to a corresponding ID (i.e., 38483).  This conversion
+is performed using the default token set (i.e., [dlus]) and bitmask
+encoding.
 
     $ pathwell-topology2id -t bitmask '?u?l?l?d?s'
     Topology='?u?l?l?d?s'; ID='38483';
 
-=head2 Example 3. Bitmask mode, charsets ?d, ?l, ?u, ?s, ?f, ?x, STDIN
+=head2 Example 4. Bitmask Topology Conversion Using Alternate Token Set
 
-    $ echo '?u?f?l?d?x' | pathwell-topology2id -t bitmask -s 3 -f -
+The command shown below converts the specified topology (i.e.,
+'?u?f?l?d?x') to a corresponding ID (i.e., 1222725).  This conversion
+is performed using an alternate token set (i.e., [dlusfx]) and
+bitmask encoding.
+
+    $ pathwell-topology2id -t bitmask -s 3 '?u?f?l?d?x'
     Topology='?u?f?l?d?x'; ID='1222725';
 

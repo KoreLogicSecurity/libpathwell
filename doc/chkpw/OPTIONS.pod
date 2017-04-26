@@ -1,0 +1,99 @@
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-b>
+
+Enable blacklist checking.
+
+=item B<-d db>
+
+Specifies the path and name of the database that is to be
+consulted when performing PathWell checks.
+
+=item B<-e environment>
+
+Specifies the environment where application is meant to be
+used.  The following environments are supported: 0) CLI and 1)
+JavaScript.  The default environment is CLI (i.e., the default
+value is '0').  Setting the environment to JavaScript will produce
+JSON-formatted output.
+
+=item B<-h hint-info-level>
+
+Specifies the desired hinting information level.  The supported
+levels (listed below) provide information indicating:
+
+    1) only that a check failed (default)
+    2) rejected topology / suggested topology
+    3) rejected password / suggested topology
+    4) rejected password / suggested password
+
+Note: This feature is currently limited to blacklist violations.
+
+=item B<-i>
+
+Increment the use count if the new password satisfies all enabled
+checks.  If no checks are enabled, the use count is updated as a
+matter of course.
+
+=item B<-L minlev>
+
+Specifies the minimun Levenshtein distance required for topologies
+derived from candidate passwords.  This option is disabled by default
+(i.e., the default value is '0').
+
+=item B<-l minlen>
+
+Specifies the minimun length required for candidate passwords.
+This option is disabled by default (i.e., the default value is '0').
+
+=item B<[-m]>
+
+Enable deletions as a suggested password modification.  This option
+is disabled by default.
+
+=item B<-p hint-pres-level>
+
+Specifies the desired hinting presentation level.  The supported
+levels (listed below) render the hint suggestion as:
+
+    1) direct printing of topology/password (default)
+    2) pictorial representation of change(s)
+    3) both 1 and 2
+
+Note: This feature is currently limited to blacklist violations.
+
+=item B<[-S seed]>
+
+Specifies a seed for the PRNG, which is used, in turn, to influence
+the output produced by hinting information levels 2-4.  Any positive
+32-bit integer value is permitted.  If not specified, the seed will
+be selected automatically.  This option is useful for testing where
+deterministic results are desired.
+
+=item B<[-s token-set]>
+
+Specifies the ID of the token set to use for performing conversions.
+The following token sets are supported:
+
+    1 - [dlus] (default)
+    2 - [dlusf] (under development)
+    3 - [dlusfx] (under development)
+    4 - [dlusfxH] (under development)
+
+=item B<[-t encoding-type]>
+
+Specifies the type of encoding to use while performing conversions.
+Currently, the following encoding types are supported: 'baseN+1'
+and 'bitmask'.  The default value is 'baseN+1'.
+
+=item B<-u maxuse>
+
+Specifies the maximum use count allowed for topologies derived from
+candidate passwords.  This option is disabled by default (i.e.,
+the default value is '0').
+
+=back
+

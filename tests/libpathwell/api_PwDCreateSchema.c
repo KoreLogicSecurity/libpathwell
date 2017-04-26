@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwDCreateSchema.c,v 1.1.2.3 2015/09/30 16:05:54 klm Exp $
+ * $Id: api_PwDCreateSchema.c,v 1.5 2017/04/20 13:23:39 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2017 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -19,8 +19,8 @@
 #include "config.h"
 #endif
 #include <pathwell.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <tap.h>
 
 int
@@ -60,7 +60,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
     diag("%s", PwDGetError(psPwDContext));
   }
 
-  PwDFreeContext(psPwDContext);
+  PwDFreeContext(&psPwDContext);
 
   return exit_status();
 }

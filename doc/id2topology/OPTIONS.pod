@@ -5,24 +5,23 @@
 
 =item B<[-f {file|-}]>
 
-Specifies the name of the input file. A value of '-' will cause the
-program to read from stdin.
+Specifies a file containing items, one per line, to be converted.
+A value of '-' will cause the program to read from stdin.
 
 =item B<[-s token-set]>
 
-Specifies the ID (see below) of the token set to use while performing
-conversions. The default value is '1'.
+Specifies the ID of the token set to use for performing conversions.
+The following token sets are supported:
 
-    1 - ?d, ?l, ?u, ?s
-    2 - ?d, ?l, ?u, ?s, ?f
-    3 - ?d, ?l, ?u, ?s, ?f, ?x
-    4 - ?d, ?l, ?u, ?s, ?f, ?x, ?H
+    1 - [dlus] (default)
+    2 - [dlusf]
+    3 - [dlusfx]
+    4 - [dlusfxH]
 
 =item B<[-t encoding-type]>
 
-Specifies the type of encoding to use while performing
-conversions. Currently, the following encoding types are supported:
-'baseN+1' and 'bitmask'. The default value is 'baseN+1'.
+Specifies the type of encoding to use for conversions, which must
+be one of 'baseN+1' or 'bitmask'.  The default value is 'baseN+1'.
 
 =back
 

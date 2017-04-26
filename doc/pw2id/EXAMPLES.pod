@@ -1,23 +1,44 @@
 
 =head1 EXAMPLES
 
-=head2 Example 1. BaseN+1 mode (default), charsets ?d, ?l, ?u, ?s (default)
+=head2 Example 1. BaseN+1 Password Conversion Using Default Token Set
+
+The command shown below converts the specified password
+(i.e., 'Summer2013!') to a corresponding ID (i.e., 34178909).
+This conversion is performed using the default token set (i.e.,
+[dlus]) and encoding (i.e., 'baseN+1').
 
     $ pathwell-pw2id 'Summer2013!'
     Password='Summer2013!'; ID='34178909';
 
-=head2 Example 2. BaseN+1 mode (default), charsets ?d, ?l, ?u, ?s (default), STDIN
+=head2 Example 2. Multiple BaseN+1 Password Conversions Using Default Token Set
 
-    $ echo 'Summer2013!' | pathwell-pw2id -f -
+The command shown below converts a list of passwords, supplied
+on stdin, to their corresponding IDs.  The default token set and
+encoding are used.
+
+    $ for value in 'Summer2013!' 'Password321' 'Slim#Chance' ; do \
+    >   echo ${value} | pathwell-pw2id -f - ; \
+    > done
     Password='Summer2013!'; ID='34178909';
+    Password='Password321'; ID='34179656';
+    Password='Slim#Chance'; ID='34214062';
 
-=head2 Example 3. Bitmask mode, charsets ?d, ?l, ?u, ?s (default)
+If the passwords had been listed (one per line) in a file named
+'input.list', the same results could be achieved with:
+
+    $ pathwell-pw2id -f input.list
+    Password='Summer2013!'; ID='34178909';
+    Password='Password321'; ID='34179656';
+    Password='Slim#Chance'; ID='34214062';
+
+=head2 Example 3. Bitmask Password Conversion Using Default Token Set
+
+The command shown below converts the specified password (i.e.,
+'Password123.') to a corresponding ID (i.e., 747984131).
+This conversion is performed using the default token set (i.e.,
+[dlus]) and bitmask encoding.
 
     $ pathwell-pw2id -t bitmask 'Password123.'
-    Password='Password123.'; ID='747984131';
-
-=head2 Example 4. Bitmask mode, charsets ?d, ?l, ?u, ?s (default), STDIN
-
-    $ echo 'Password123.' | pathwell-pw2id -t bitmask -f -
     Password='Password123.'; ID='747984131';
 

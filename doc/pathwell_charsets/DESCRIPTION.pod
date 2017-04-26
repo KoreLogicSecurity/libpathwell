@@ -114,11 +114,11 @@ class is as follows:
     0xFF
 
 Note that the '?d', '?l', '?u', and '?s' tokens used in PathWell
-correspond exactly to sets of the same name used by the Hashcat /
-oclHashcat suite of tools.
+correspond exactly to sets of the same name used by the Hashcat
+suite of tools.
 
 The '?f', '?x', and '?H' sets do not map directly to sets used by
-*Hashcat, but combined, they cover the same keyspace as *Hashcat's
+Hashcat, but combined, they cover the same keyspace as Hashcat's
 '?D', '?F', '?R', and '?h' sets.
 
 There is no support in PathWell at this time to define custom

@@ -23,11 +23,41 @@ to an attacker.  As such, use of the 'debug' flag should be restricted
 to test environments and/or test purposes only.  In particular, use of
 this flag in any production environment is highly discouraged.
 
+=item B<delayed>
+
+Specifies that audit mode should record not the topology of the user's
+new password at password-change time, but rather their old password.
+This can result in the audit database being slightly less valuable to
+an attacker who gains access to it.
+
 =item B<encoding={baseN+1|bitmask}>
 
 Specifies the type of encoding to use while performing conversions.
 Currently, the following encoding types are supported: 'baseN+1' and
 'bitmask'.  The default value is 'baseN+1'.
+
+=item B<hintinfolevel={1,2,3,4}>
+
+Specifies the desired hinting information level.  The supported
+levels (listed below) provide information indicating:
+
+    1) only that a check failed (default)
+    2) rejected topology / suggested topology
+    3) rejected password / suggested topology
+    4) rejected password / suggested password
+
+Note: This feature is currently limited to blacklist violations.
+
+=item B<hintpreslevel={1,2,3}>
+
+Specifies the desired hinting presentation level.  The supported
+levels (listed below) render the hint suggestion as:
+
+    1) direct printing of topology/password (default)
+    2) pictorial representation of change(s)
+    3) both 1 and 2
+
+Note: This feature is currently limited to blacklist violations.
 
 =item B<maxuse=int>
 
@@ -41,19 +71,19 @@ Specifies minimum required password length.  The default value is
 
 =item B<minlev=int>
 
-Specifies minimum required Lev distance between the old and new
-topologies.  The default value is '0', which means that no limit
-is imposed.
+Specifies minimum required Levenshtein distance between the old
+and new topologies.  The default value is '0', which means that no
+limit is imposed.
 
 =item B<tokenset={1|2|3|4}>
 
-Specifies the ID (see below) of the token set to use while performing
-conversions.  The default value is '1'.
+Specifies the ID of the token set to use for performing conversions.
+The following token sets are supported:
 
-    1 - ?d, ?l, ?u, ?s
-    2 - ?d, ?l, ?u, ?s, ?f
-    3 - ?d, ?l, ?u, ?s, ?f, ?x
-    4 - ?d, ?l, ?u, ?s, ?f, ?x, ?H
+    1 - [dlus] (default)
+    2 - [dlusf]
+    3 - [dlusfx]
+    4 - [dlusfxH]
 
 =item B<use_authtok>
 

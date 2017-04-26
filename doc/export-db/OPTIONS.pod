@@ -5,17 +5,23 @@
 
 =item B<[-d /path/to/PathWell.db]>
 
-Path and name of the database that is to be exported.
-
-The default value is "/var/lib/PathWell/PathWell.db".
+Path and name of the database whose tables are to be listed or
+exported.  The default value is '/var/lib/PathWell/PathWell.db'.
 
 =item B<-l>
 
-List the tables in the PathWell database.  Either -l or -t is manditory.
+List the tables defined in the PathWell database.  Note that this
+option is mutually exclusive with the B<-t> option.  In other words,
+one of B<-l> or B<-t> is manditory, but both may not be specified
+in the same command line invocation.
 
 =item B<-t {all|<tablename>[,<tablename>[,...]}>
 
-Export the contents of all tables, or the specific named tables, in the PathWell database in CSV format.  Either -l or -t is manditory.
+Export the contents of the specified tables in CSV format.
+The tables to be exported must be specified as a comma-delimited
+list (void of any intervening whitespace) or as the keyword 'all',
+which means export all tables.  Note that this option is mutually
+exclusive with the B<-l> option.
 
 =back
 

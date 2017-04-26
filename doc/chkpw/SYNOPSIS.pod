@@ -1,0 +1,5 @@
+
+=head1 SYNOPSIS
+
+B<pathwell-chkpw> B<[-bim]> B<[-e environment]> B<[-h hint-info-level]> B<[-L minlev]> B<[-l minlen]> B<-p hint-pres-level> B<[-s token-set]> B<[-t encoding-type]> B<[-u maxuse]> B<-d db> old-password new-password
+

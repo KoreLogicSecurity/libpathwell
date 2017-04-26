@@ -1,0 +1,42 @@
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-c count>
+
+Specifies the new use count that is to be assigned to all supplied
+passwords/topologies.
+
+=item B<-d db>
+
+Specifies the path and name name of the database that is to be
+updated.
+
+=item B<[-f {file|-}]>
+
+Specifies a file containing items, one per line, to be processed.
+A value of '-' will cause the program to read from stdin.
+
+=item B<[-p]>
+
+Specifies that the items being supplied are passwords rather than
+topologies.
+
+=item B<[-s token-set]>
+
+Specifies the ID of the token set to use for performing conversions.
+The following token sets are supported:
+
+    1 - [dlus] (default)
+    2 - [dlusf]
+    3 - [dlusfx]
+    4 - [dlusfxH]
+
+=item B<[-t encoding-type]>
+
+Specifies the type of encoding to use for conversions, which must
+be one of 'baseN+1' or 'bitmask'.  The default value is 'baseN+1'.
+
+=back
+

@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: pam_pathwell.h,v 1.8.2.1 2015/09/30 16:05:54 klm Exp $
+ * $Id: pam_pathwell.h,v 1.13 2017/04/21 17:46:08 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2017 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -34,7 +34,10 @@
 #define PW_PAM_OPT_BLACKLIST "blacklist"
 #define PW_PAM_OPT_DB "db="
 #define PW_PAM_OPT_DEBUG "debug"
+#define PW_PAM_OPT_DELAYED "delayed"
 #define PW_PAM_OPT_ENCODING "encoding="
+#define PW_PAM_OPT_HINTINFOLEVEL "hintinfolevel="
+#define PW_PAM_OPT_HINTPRESLEVEL "hintpreslevel="
 #define PW_PAM_OPT_MAXUSE "maxuse="
 #define PW_PAM_OPT_MINLEN "minlen="
 #define PW_PAM_OPT_MINLEV "minlev="

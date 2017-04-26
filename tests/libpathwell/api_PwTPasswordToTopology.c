@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: api_PwTPasswordToTopology.c,v 1.2.2.4 2015/09/30 17:54:51 klm Exp $
+ * $Id: api_PwTPasswordToTopology.c,v 1.7 2017/04/20 13:23:39 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2017 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -20,8 +20,8 @@
 #endif
 #include <inttypes.h>
 #include <pathwell.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <tap.h>
 
@@ -114,7 +114,7 @@ main(int iArgumentCount, char *ppcArgumentVector[])
     }
   }
 
-  PwTFreeContext(psPwTContext);
+  PwTFreeContext(&psPwTContext);
 
   return exit_status();
 }

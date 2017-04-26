@@ -1,0 +1,199 @@
+
+=head1 EXAMPLES
+
+The examples provided below, assume the PathWell database, located
+in the current directory, was created as follows:
+
+    $ echo '?u?u?u?u?u?u?u' > test_blacklist
+    $ pathwell-create-db -d PathWellTest.db -f test_blacklist
+    $ pathwell-setuc -d PathWellTest.db -c 1 '?l?l?l?l?l?l?l'
+    Topology='?l?l?l?l?l?l?l'; ID='39062';
+
+=head2 Example 1. Check Minimum Password Length
+
+The command shown below checks the new password argument (i.e.,
+'newpass') to ensure that it meets the minimum length requirement
+(i.e., 8).  Note that the old password argument is left blank.
+
+    $ pathwell-chkpw -d PathWellTest.db -l 8 '' 'newpass'
+    OldPassword='';
+    OldTopology='?z';
+    OldId='0';
+    NewPassword='newpass';
+    NewTopology='?l?l?l?l?l?l?l';
+    NewId='39062';
+    PasswordOk='false';
+    PasswordHint='The new password did not meet the minimum length requirement.';
+
+=head2 Example 2. Check Minimum Levenshtein Distance
+
+The command shown below checks the new password argument (i.e.,
+'mypass2') against the old password (i.e., 'mypass1') to ensure
+that it meets the minimum Levenshtein distance requirement (i.e., 2).
+
+    $ pathwell-chkpw -d PathWellTest.db -L 2 'mypass1' 'mypass2'
+    OldPassword='mypass1';
+    OldTopology='?l?l?l?l?l?l?d';
+    OldId='39061';
+    NewPassword='mypass2';
+    NewTopology='?l?l?l?l?l?l?d';
+    NewId='39061';
+    PasswordOk='false';
+    PasswordHint='The new password failed the minlev check.';
+
+If the new password had been chosen such that it possessed at least
+two distinct topology changes, it would have been accepted.  For
+example, try any of the following:
+
+    $ pathwell-chkpw -d PathWellTest.db -L 2 'mypass1' 'pass'
+    $ pathwell-chkpw -d PathWellTest.db -L 2 'mypass1' 'MYpass'
+    $ pathwell-chkpw -d PathWellTest.db -L 2 'mypass1' '1mypass'
+    $ pathwell-chkpw -d PathWellTest.db -L 2 'mypass1' 'mypass#X'
+
+=head2 Example 3. Check Maximum Use Count
+
+The command shown below checks the new password argument (i.e.,
+'newpass') to ensure that the corresponding topology's maximum use
+count (i.e., 1) has not been reached.
+
+    $ pathwell-chkpw -d PathWellTest.db -u 1 '' 'newpass'
+    OldPassword='';
+    OldTopology='?z';
+    OldId='0';
+    NewPassword='newpass';
+    NewTopology='?l?l?l?l?l?l?l';
+    NewId='39062';
+    PasswordOk='false';
+    PasswordHint='The new password failed the maxuse check.';
+
+If the maximum use count is increased to 2 and the above command
+is run again, we see that the new password is accepted.
+
+    $ pathwell-chkpw -d PathWellTest.db -u 2 '' 'newpass'
+    OldPassword='';
+    OldTopology='?z';
+    OldId='0';
+    NewPassword='newpass';
+    NewTopology='?l?l?l?l?l?l?l';
+    NewId='39062';
+    PasswordOk='true';
+    PasswordHint='';
+
+=head2 Example 4. Blacklist Check
+
+The command shown below checks the new password argument (i.e.,
+'NEWPASS') to ensure that the corresponding topology has not been
+blacklisted.
+
+    $ pathwell-chkpw -d PathWellTest.db -b '' 'NEWPASS'
+    OldPassword='';
+    OldTopology='?z';
+    OldId='0';
+    NewPassword='NEWPASS';
+    NewTopology='?u?u?u?u?u?u?u';
+    NewId='58593';
+    PasswordOk='false';
+    PasswordHint='The new password failed the blacklist check.';
+
+It's important to note, here, that all passwords having the same
+topology (i.e., '?u?u?u?u?u?u?u') will be rejected.  For example,
+passwords like 'BADEGGS', 'NOCYCLE', or 'UPSWING' should all be
+rejected.
+
+If, however, a password (say 'NewPass') with a different topology
+is chosen, it is subsequently accepted.  This makes sense becuase
+the blacklist in the test database only contains one entry, and
+that entry does not match the topology for the new password (i.e.,
+'?u?u?u?u?u?u?u' != '?u?l?l?u?l?l?l').  Note the current set of
+blacklisted topologies may be enumerated by running the following
+command:
+
+    $ pathwell-export-db -d PathWellTest.db -t topology_blacklist
+    topology_blacklist:
+    topology
+    ?u?u?u?u?u?u?u
+
+=head2 Example 5. Blacklist Checks That Return Hints
+
+The commands shown below vary the amount of hint information
+and presentation detail.  Each check is made against the current
+blacklist.  Note that a fixed seed value of 55 is used to ensure
+that you get the same results (i.e., hints).  If you omit the '-S'
+argument, your hints will vary with each subsequent invocation.
+
+Here the hint information level is 2:
+
+    $ pathwell-chkpw -d PathWellTest.db -b -h 2 -S 55 '' 'NEWPASS'
+    OldPassword='';
+    OldTopology='?z';
+    OldId='0';
+    NewPassword='NEWPASS';
+    NewTopology='?u?u?u?u?u?u?u';
+    NewId='58593';
+    PasswordOk='false';
+    PasswordHint='The new password failed the blacklist check. Try making a password with this topology: uuluuuss.';
+
+Here both the hint information and presentation levels are 2:
+
+    $ pathwell-chkpw -d PathWellTest.db -b -h 2 -p 2 -S 55 '' 'NEWPASS'
+    OldPassword='';
+    OldTopology='?z';
+    OldId='0';
+    NewPassword='NEWPASS';
+    NewTopology='?u?u?u?u?u?u?u';
+    NewId='58593';
+    PasswordOk='false';
+    PasswordHint='
+                                                  uu uuuuu
+                                                    |   ||
+      insert a lower case character ----------------+   ||
+                                                        ||
+        replace with a special character ---------------+|
+                                                         |
+          replace with a special character --------------+
+    ';
+
+Here both the hint information and presentation levels are 3:
+
+    $ pathwell-chkpw -d PathWellTest.db -b -h 3 -p 3 -S 55 '' 'NEWPASS'
+    OldPassword='';
+    OldTopology='?z';
+    OldId='0';
+    NewPassword='NEWPASS';
+    NewTopology='?u?u?u?u?u?u?u';
+    NewId='58593';
+    PasswordOk='false';
+    PasswordHint='
+                                                  NE WPASS
+                                                    |   ||
+      insert a lower case character ----------------+   ||
+                                                        ||
+        replace with a special character ---------------+|
+                                                         |
+          replace with a special character --------------+
+
+     This should produce the following topology: uuluuuss
+    ';
+
+Here the information level is 4 and the presentation level is 3:
+
+    $ pathwell-chkpw -d PathWellTest.db -b -h 4 -p 3 -S 55 '' 'NEWPASS'
+    OldPassword='';
+    OldTopology='?z';
+    OldId='0';
+    NewPassword='NEWPASS';
+    NewTopology='?u?u?u?u?u?u?u';
+    NewId='58593';
+    PasswordOk='false';
+    PasswordHint='
+                              NE WPASS
+                                |   ||
+      insert a 'z' -------------+   ||
+                                    ||
+        replace with '@' -----------+|
+                                     |
+          replace with ';' ----------+
+
+     This should produce the following password: NEzWPA@;
+    ';
+

@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: create-db.c,v 1.5.2.1 2015/09/30 16:05:53 klm Exp $
+ * $Id: create-db.c,v 1.8 2017/04/19 16:16:04 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2017 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -237,7 +237,7 @@ AppCleanProperties(PROPERTIES *psProperties)
     {
       free(psProperties->pcDbDirectory);
     }
-    PwDFreeContext(psProperties->psPwDContext);
+    PwDFreeContext(&psProperties->psPwDContext);
     free(psProperties);
   }
   return;
@@ -296,7 +296,7 @@ AppUsage(void)
                         with \"/usr/share/PathWell/topology_blacklist.default\"\n\
                         as the fallback. Note: If this option isn't specified\n\
                         and neither of the default files exist, no topologies\n\
-                        will be loaded into the blacklist.\n\
+                        will be loaded.\n\
 \n"
   );
   fprintf(stderr, "\n");

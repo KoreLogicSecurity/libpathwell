@@ -3,6 +3,46 @@
 
 #include <pathwell.h>
 
+=head1 PwC (PathWell Check Macros)
+
+int PwCSetError(PW_C_CONTEXT *psPwCContext, const char *pcFormat, ...);
+
+=head1 PwC (PathWell Check Routines)
+
+int PwCAllCheck(PW_C_CONTEXT *psPwCContext);
+
+int PwCContextIsValid(PW_C_CONTEXT *psPwCContext);
+
+int PwCDisableBlacklist(PW_C_CONTEXT *psPwCContext);
+
+int PwCEnableBlacklist(PW_C_CONTEXT *psPwCContext);
+
+void PwCFreeContext(PW_C_CONTEXT **ppsPwCContext);
+
+unsigned int PwCGetCheckCode(PW_C_CONTEXT *psPwCContext);
+
+unsigned int PwCGetChecks(PW_C_CONTEXT *psPwCContext);
+
+const char *PwCGetError(PW_C_CONTEXT *psPwCContext);
+
+int PwCGetMaxUse(PW_C_CONTEXT *psPwCContext);
+
+int PwCGetMinLen(PW_C_CONTEXT *psPwCContext);
+
+int PwCGetMinLev(PW_C_CONTEXT *psPwCContext);
+
+PW_C_CONTEXT *PwCNewContextFromParameters(PW_D_CONTEXT *psPwDContext, PW_T_CONTEXT *psOldPwTContext, PW_T_CONTEXT *psNewPwTContext);
+
+int PwCSetCheckCode(PW_C_CONTEXT *psPwCContext, unsigned int uiCheckCode);
+
+int PwCSetChecks(PW_C_CONTEXT *psPwCContext, unsigned int uiChecks);
+
+int PwCSetMaxUse(PW_C_CONTEXT *psPwCContext, int iMaxUse);
+
+int PwCSetMinLen(PW_C_CONTEXT *psPwCContext, int iMinLen);
+
+int PwCSetMinLev(PW_C_CONTEXT *psPwCContext, int iMinLev);
+
 =head1 PwD (PathWell Datastore Macros)
 
 int PwDSetError(PW_D_CONTEXT *psPwDContext, const char *pcFormat, ...);
@@ -79,11 +119,53 @@ int PwDVerifySchema(PW_D_CONTEXT *psPwDContext);
 
 int PwESetError(PW_E_CONTEXT *psPwEContext, const char *pcFormat, ...);
 
-=head1 PwL (PathWell Lev Macros)
+=head1 PwH (Pathwell Hint Routines)
+
+int PwHContextIsValid(PW_H_CONTEXT *psPwHContext);
+
+void PwHFreeContext(PW_H_CONTEXT **ppsPwHContext);
+
+const char *PwHGetError(PW_H_CONTEXT *psPwHContext);
+
+int PwHGenHint(PW_H_CONTEXT *psPwHContext, PW_C_CONTEXT *psPwCContext);
+
+char *PwHGenHintDiagram(PW_H_CONTEXT *psPwHContext, const char *pcSrcBuf);
+
+int PwHGenHintInfoLevel1(PW_H_CONTEXT *psPwHContext, PW_C_CONTEXT *psPwCContext);
+
+int PwHGenHintInfoLevel2(PW_H_CONTEXT *psPwHContext, PW_C_CONTEXT *psPwCContext);
+
+int PwHGenHintInfoLevel2Json(PW_H_CONTEXT *psPwHContext, PW_C_CONTEXT *psPwCContext);
+
+int PwHGenHintInfoLevel3(PW_H_CONTEXT *psPwHContext, PW_C_CONTEXT *psPwCContext);
+
+int PwHGenHintInfoLevel3Json(PW_H_CONTEXT *psPwHContext, PW_C_CONTEXT *psPwCContext);
+
+int PwHGenHintInfoLevel4(PW_H_CONTEXT *psPwHContext, PW_C_CONTEXT *psPwCContext);
+
+int PwHGenHintInfoLevel4Json(PW_H_CONTEXT *psPwHContext, PW_C_CONTEXT *psPwCContext);
+
+char *PwHGenHintJson(PW_H_CONTEXT *psPwHContext, const char *pcSrcBuf);
+
+int PwHGenNearbyPassword(PW_H_CONTEXT *psPwHContext, PW_C_CONTEXT *psPwCContext);
+
+int PwHGenNearbyTopology(PW_H_CONTEXT *psPwHContext, PW_C_CONTEXT *psPwCContext);
+
+int PwHGetEnvironment(PW_H_CONTEXT *psPwHContext);
+
+char *PwHGetHint(PW_H_CONTEXT *psPwHContext);
+
+char *PwHGetNearbyPassword(PW_H_CONTEXT *psPwHContext);
+
+char *PwHGetNearbyTopology(PW_H_CONTEXT *psPwHContext);
+
+PW_H_CONTEXT *PwHNewContextFromParameters(int iDeleteAllowed, int iHintInfoLevel, int iHintPresLevel, int iEnvironment, unsigned int uiSeed);
+
+=head1 PwL (PathWell Levenshtein Macros)
 
 int PwLSetError(PW_L_CONTEXT *psPwLContext, const char *pcFormat, ...);
 
-=head1 PwL (PathWell Lev Routines)
+=head1 PwL (PathWell Levenshtein Routines)
 
 int PwLCalcLevDistance(PW_L_CONTEXT *psPwLContext);
 
@@ -119,6 +201,8 @@ int PwSMin3(int iValueA, int iValueB, int iValueC);
 
 =head1 PwS (PathWell Support Routines)
 
+int PWSAppendToDynamicString(char *pcTargetBuf, char *pcStringToAppend);
+
 int PwSBaseNTo63Bit(char *pcValue, int64_t *pi64Value, int iBase);
 
 char *PwSChomp(char *pcString, char *pcChompSet, int iMode);
@@ -127,7 +211,13 @@ int PwSCreateDirectory(char *pcPath, mode_t tMode);
 
 char *PwSDirname(char *pcPath);
 
+char *PwSFormatDynamicString(char *pcTargetBuf, const char *pcFormat, ...);
+
+char PwSGetRandomCharInClass(char cClass);
+
 int PwSLevenshteinDistance(char *pcStringA, char *pcStringB);
+
+void PwSSeedRNG(unsigned int uiSeed);
 
 =head1 PwT (PathWell Topology Macros)
 
@@ -135,7 +225,11 @@ int PwTSetError(PW_T_CONTEXT *psPwTContext, const char *pcFormat, ...);
 
 =head1 PwT (PathWell Topology Routines)
 
+int PwTBaseNp1IdOk(PW_T_CONTEXT *psPwTContext);
+
 int PwTBaseNp1IdToTopology(PW_T_CONTEXT *psPwTContext);
+
+int PwTBitmaskIdOk(PW_T_CONTEXT *pwPwTContext);
 
 int PwTBitmaskIdToTopology(PW_T_CONTEXT *psPwTContext);
 
@@ -158,6 +252,8 @@ int PwTGetTokenSet(PW_T_CONTEXT *psPwTContext);
 char *PwTGetTokenSetTokens(PW_T_CONTEXT *psPwTContext);
 
 const char *PwTGetTopology(PW_T_CONTEXT *psPwTContext);
+
+int PwTIdOk(PW_T_CONTEXT *psPwTContext);
 
 int PwTIdToTopology(PW_T_CONTEXT *psPwTContext);
 

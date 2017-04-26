@@ -18,6 +18,7 @@ Specifies a file containing blacklisted topologies, one per
 line, to be loaded into the database.  The default value for
 this option is '/etc/PathWell/topology_blacklist.local' with
 '/usr/share/PathWell/topology_blacklist.default' as the fallback.
+
 Note: If this option isn't specified and neither of the default
 files exist, no topologies will be loaded.
 

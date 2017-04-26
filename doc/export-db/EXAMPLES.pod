@@ -1,15 +1,26 @@
 
 =head1 EXAMPLES
 
-=head2 Example 1. List tables from a Pathwell Database in the default location
+=head2 Example 1. List All Pathwell Database Tables
+
+The command shown below lists all tables defined in the
+Pathwell database located in the default location (i.e.,
+/var/lib/PathWell/PathWell.db).
 
     $ pathwell-export-db -l
 
-=head2 Example 2. Export all tables from a Pathwell Database in the default location
+=head2 Example 2. Export All Pathwell Database Tables
+
+The command shown below exports the contents of all tables defined
+in the Pathwell database located in the default location.
 
     $ pathwell-export-db -t all
 
-=head2 Example 3. Export only the base4p1 table from a database in an alternate location
+=head2 Example 3. Export A Specific Pathwell Database Table
 
-    $ pathwell-export-db -d /root/PathWellTest.db -t base4p1
+The command shown below exports the contents of the base4p1 table
+from a Pathwell database located in a custom location (i.e.,
+/root/PathWell.db).
+
+    $ pathwell-export-db -d /root/PathWell.db -t base4p1
 

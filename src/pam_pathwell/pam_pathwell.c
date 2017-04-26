@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: pam_pathwell.c,v 1.68.2.1 2015/09/30 16:05:54 klm Exp $
+ * $Id: pam_pathwell.c,v 1.103 2017/04/25 16:21:19 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2017 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -29,33 +29,62 @@ pam_sm_chauthtok(pam_handle_t *psPamHandle, int iPamFlags, int iArgumentCount, c
 {
   char               *pcDbFile = PATHWELL_DEFAULT_DB_FILE;
   const char         *pcError = NULL;
+  const char         *pcHint = NULL;
   const char         *pcNewAuthToken = NULL;
   const char         *pcOldAuthToken = NULL;
   const char         *pcUser = NULL;
   const char         *pcValue = NULL;
   int                 iBlacklist = PATHWELL_FALSE;
   int                 iBlacklisted = PATHWELL_FALSE;
-  int                 iDbRequired = PATHWELL_FALSE;
   int                 iDebug = PATHWELL_FALSE;
+  int                 iDelayed = PATHWELL_FALSE;
   int                 iEncoding = PATHWELL_DEFAULT_ENCODING;
   int                 iError = 0;
+  int                 iHintInfoLevel = PATHWELL_HINT_INFO_LEVEL_1;
+  int                 iHintPresLevel = PATHWELL_HINT_PRES_LEVEL_3;
   int                 iIndex = 0;
   int                 iInUse = PATHWELL_FALSE;
   int                 iLeveled = PATHWELL_FALSE;
   int                 iMaxUse = 1; // Note: This implies that leveling is enabled by default.
-  int                 iMinLen = 0;
-  int                 iMinLev = 0;
+  int                 iMinLen = 0; // Note: This implies that length checks are disabled by default.
+  int                 iMinLev = 0; // Note: This implies that Levenshtein checks are disabled by default.
   int                 iMode = PW_PAM_MODE_NOT_SET;
+  int                 iOldPwTContextFabricated = PATHWELL_FALSE;
   int                 iReturnValue = PAM_SUCCESS;
   int                 iTokenSet = PATHWELL_DEFAULT_TOKEN_SET_ID;
   int                 iUseAuthToken = PATHWELL_FALSE;
   int                 iValueIndex = 0;
   int                 iValueLength = 0;
+  PW_C_CONTEXT       *psPwCContext = NULL;
   PW_D_CONTEXT       *psPwDContext = NULL;
+  PW_H_CONTEXT       *psPwHContext = NULL;
   PW_L_CONTEXT       *psPwLContext = NULL;
   PW_T_CONTEXT       *psNewPwTContext = NULL;
   PW_T_CONTEXT       *psOldPwTContext = NULL;
   unsigned int       *puiUseCount = NULL;
+
+  /*-
+   ***********************************************************************
+   *
+   * Conditionally log a checkpoint.
+   *
+   ***********************************************************************
+   */
+  if (iDebug)
+  {
+    pam_syslog
+    (
+      psPamHandle,
+      LOG_DEBUG,
+      "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Status='done'; Reason='Checkpoint reached (module started).';",
+      PwVGetReleaseString(),
+      PwVGetLibraryVersion(),
+      PwVGetModuleVersion(),
+      iPamFlags,
+      (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : "monitor",
+      (pcUser == NULL) ? "(null)" : pcUser
+    );
+  }
 
   /*-
    ***********************************************************************
@@ -78,6 +107,10 @@ pam_sm_chauthtok(pam_handle_t *psPamHandle, int iPamFlags, int iArgumentCount, c
     {
       iDebug = PATHWELL_TRUE;
     }
+    else if (strcasecmp(ppcArgumentVector[iIndex], PW_PAM_OPT_DELAYED) == 0)
+    {
+      iDelayed = PATHWELL_TRUE;
+    }
     else if (strncasecmp(ppcArgumentVector[iIndex], PW_PAM_OPT_ENCODING, strlen(PW_PAM_OPT_ENCODING)) == 0)
     {
       pcValue = &ppcArgumentVector[iIndex][strlen(PW_PAM_OPT_ENCODING)];
@@ -92,20 +125,56 @@ pam_sm_chauthtok(pam_handle_t *psPamHandle, int iPamFlags, int iArgumentCount, c
       else
       {
         pcError = "The \"encoding\" option must be one of \"baseN+1\" or \"bitmask\".";
-        pam_syslog
-        (
-          psPamHandle,
-          LOG_ERR,
-          "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Error='%s';",
-          PwVGetReleaseString(),
-          PwVGetLibraryVersion(),
-          PwVGetModuleVersion(),
-          iPamFlags,
-          (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : (iMode == PW_PAM_MODE_MONITOR) ? "monitor" : "",
-          (pcUser == NULL) ? "(null)" : pcUser,
-          pcError
-        );
-        return PAM_SERVICE_ERR;
+        iReturnValue = PAM_SERVICE_ERR;
+        goto USAGE_CLEANUP;
+      }
+    }
+    else if (strncasecmp(ppcArgumentVector[iIndex], PW_PAM_OPT_HINTINFOLEVEL, strlen(PW_PAM_OPT_HINTINFOLEVEL)) == 0)
+    {
+      pcValue = &ppcArgumentVector[iIndex][strlen(PW_PAM_OPT_HINTINFOLEVEL)];
+      if (strcasecmp(pcValue, "1") == 0)
+      {
+        iHintInfoLevel = PATHWELL_HINT_INFO_LEVEL_1;
+      }
+      else if (strcasecmp(pcValue, "2") == 0)
+      {
+        iHintInfoLevel = PATHWELL_HINT_INFO_LEVEL_2;
+      }
+      else if (strcasecmp(pcValue, "3") == 0)
+      {
+        iHintInfoLevel = PATHWELL_HINT_INFO_LEVEL_3;
+      }
+      else if (strcasecmp(pcValue, "4") == 0)
+      {
+        iHintInfoLevel = PATHWELL_HINT_INFO_LEVEL_4;
+      }
+      else
+      {
+        pcError = "The \"hintinfolevel\" option must be an integer in the range [1-4].";
+        iReturnValue = PAM_SERVICE_ERR;
+        goto USAGE_CLEANUP;
+      }
+    }
+    else if (strncasecmp(ppcArgumentVector[iIndex], PW_PAM_OPT_HINTPRESLEVEL, strlen(PW_PAM_OPT_HINTPRESLEVEL)) == 0)
+    {
+      pcValue = &ppcArgumentVector[iIndex][strlen(PW_PAM_OPT_HINTPRESLEVEL)];
+      if (strcasecmp(pcValue, "1") == 0)
+      {
+        iHintPresLevel = PATHWELL_HINT_PRES_LEVEL_1;
+      }
+      else if (strcasecmp(pcValue, "2") == 0)
+      {
+        iHintPresLevel = PATHWELL_HINT_PRES_LEVEL_2;
+      }
+      else if (strcasecmp(pcValue, "3") == 0)
+      {
+        iHintPresLevel = PATHWELL_HINT_PRES_LEVEL_3;
+      }
+      else
+      {
+        pcError = "The \"hintpreslevel\" option must be an integer in the range [1-3].";
+        iReturnValue = PAM_SERVICE_ERR;
+        goto USAGE_CLEANUP;
       }
     }
     else if (strncasecmp(ppcArgumentVector[iIndex], PW_PAM_OPT_MAXUSE, strlen(PW_PAM_OPT_MAXUSE)) == 0)
@@ -122,20 +191,8 @@ pam_sm_chauthtok(pam_handle_t *psPamHandle, int iPamFlags, int iArgumentCount, c
       if (iValueLength < 1 || iValueIndex != iValueLength)
       {
         pcError = "The \"maxuse\" option must be an integer greater than or equal to zero.";
-        pam_syslog
-        (
-          psPamHandle,
-          LOG_ERR,
-          "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Error='%s';",
-          PwVGetReleaseString(),
-          PwVGetLibraryVersion(),
-          PwVGetModuleVersion(),
-          iPamFlags,
-          (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : (iMode == PW_PAM_MODE_MONITOR) ? "monitor" : "",
-          (pcUser == NULL) ? "(null)" : pcUser,
-          pcError
-        );
-        return PAM_SERVICE_ERR;
+        iReturnValue = PAM_SERVICE_ERR;
+        goto USAGE_CLEANUP;
       }
       iMaxUse = atoi(pcValue);
     }
@@ -153,20 +210,8 @@ pam_sm_chauthtok(pam_handle_t *psPamHandle, int iPamFlags, int iArgumentCount, c
       if (iValueLength < 1 || iValueIndex != iValueLength)
       {
         pcError = "The \"minlen\" option must be an integer greater than or equal to zero.";
-        pam_syslog
-        (
-          psPamHandle,
-          LOG_ERR,
-          "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Error='%s';",
-          PwVGetReleaseString(),
-          PwVGetLibraryVersion(),
-          PwVGetModuleVersion(),
-          iPamFlags,
-          (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : (iMode == PW_PAM_MODE_MONITOR) ? "monitor" : "",
-          (pcUser == NULL) ? "(null)" : pcUser,
-          pcError
-        );
-        return PAM_SERVICE_ERR;
+        iReturnValue = PAM_SERVICE_ERR;
+        goto USAGE_CLEANUP;
       }
       iMinLen = atoi(pcValue);
     }
@@ -184,20 +229,8 @@ pam_sm_chauthtok(pam_handle_t *psPamHandle, int iPamFlags, int iArgumentCount, c
       if (iValueLength < 1 || iValueIndex != iValueLength)
       {
         pcError = "The \"minlev\" option must be an integer greater than or equal to zero.";
-        pam_syslog
-        (
-          psPamHandle,
-          LOG_DEBUG,
-          "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Error='%s';",
-          PwVGetReleaseString(),
-          PwVGetLibraryVersion(),
-          PwVGetModuleVersion(),
-          iPamFlags,
-          (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : (iMode == PW_PAM_MODE_MONITOR) ? "monitor" : "",
-          (pcUser == NULL) ? "(null)" : pcUser,
-          pcError
-        );
-        return PAM_SERVICE_ERR;
+        iReturnValue = PAM_SERVICE_ERR;
+        goto USAGE_CLEANUP;
       }
       iMinLev = atoi(pcValue);
     }
@@ -214,21 +247,9 @@ pam_sm_chauthtok(pam_handle_t *psPamHandle, int iPamFlags, int iArgumentCount, c
       }
       else
       {
-        pcError = "The \"mode\" option must be one of \"monitor\" or \"enforce\".";
-        pam_syslog
-        (
-          psPamHandle,
-          LOG_DEBUG,
-          "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Error='%s';",
-          PwVGetReleaseString(),
-          PwVGetLibraryVersion(),
-          PwVGetModuleVersion(),
-          iPamFlags,
-          (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : (iMode == PW_PAM_MODE_MONITOR) ? "monitor" : "",
-          (pcUser == NULL) ? "(null)" : pcUser,
-          pcError
-        );
-        return PAM_SERVICE_ERR;
+        pcError = "The \"mode\" argument must be one of \"monitor\" or \"enforce\".";
+        iReturnValue = PAM_SERVICE_ERR;
+        goto USAGE_CLEANUP;
       }
     }
     else if (strncasecmp(ppcArgumentVector[iIndex], PW_PAM_OPT_TOKENSET, strlen(PW_PAM_OPT_TOKENSET)) == 0)
@@ -253,20 +274,8 @@ pam_sm_chauthtok(pam_handle_t *psPamHandle, int iPamFlags, int iArgumentCount, c
       else
       {
         pcError = "The \"tokenset\" option must be an integer in the range [1-4].";
-        pam_syslog
-        (
-          psPamHandle,
-          LOG_DEBUG,
-          "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Error='%s';",
-          PwVGetReleaseString(),
-          PwVGetLibraryVersion(),
-          PwVGetModuleVersion(),
-          iPamFlags,
-          (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : (iMode == PW_PAM_MODE_MONITOR) ? "monitor" : "",
-          (pcUser == NULL) ? "(null)" : pcUser,
-          pcError
-        );
-        return PAM_SERVICE_ERR;
+        iReturnValue = PAM_SERVICE_ERR;
+        goto USAGE_CLEANUP;
       }
     }
     else if (strcasecmp(ppcArgumentVector[iIndex], PW_PAM_OPT_USE_AUTHTOK) == 0)
@@ -276,27 +285,65 @@ pam_sm_chauthtok(pam_handle_t *psPamHandle, int iPamFlags, int iArgumentCount, c
     else
     {
       pcError = "One or more invalid or unsupported options were specified. Refer to the documentation for a list of supported options and the correct usage syntax.";
-      pam_syslog
-      (
-        psPamHandle,
-        LOG_DEBUG,
-        "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Error='%s';",
-        PwVGetReleaseString(),
-        PwVGetLibraryVersion(),
-        PwVGetModuleVersion(),
-        iPamFlags,
-        (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : (iMode == PW_PAM_MODE_MONITOR) ? "monitor" : "",
-        (pcUser == NULL) ? "(null)" : pcUser,
-        pcError
-      );
-      return PAM_SERVICE_ERR;
+      iReturnValue = PAM_SERVICE_ERR;
+      goto USAGE_CLEANUP;
     }
   }
 
   /*-
    ***********************************************************************
    *
-   * If debug mode is enabled, announce that we are alive.
+   * If the mode argument is not set or valid, throw an error.
+   *
+   ***********************************************************************
+   */
+  switch (iMode)
+  {
+  case PW_PAM_MODE_ENFORCE:
+  case PW_PAM_MODE_MONITOR:
+    break;
+  case PW_PAM_MODE_NOT_SET:
+    pcError = "The \"mode\" argument must be one of \"monitor\" or \"enforce\".";
+    iReturnValue = PAM_SERVICE_ERR;
+    goto USAGE_CLEANUP;
+    break;
+  default:
+    pcError = "Invalid mode. That should not happen.";
+    iReturnValue = PAM_SERVICE_ERR;
+    goto USAGE_CLEANUP;
+    break;
+  }
+
+USAGE_CLEANUP:
+  /*-
+   *******************************************************************
+   *
+   * Clean up.
+   *
+   *******************************************************************
+   */
+  if (pcError != NULL)
+  {
+    pam_syslog
+    (
+      psPamHandle,
+      LOG_DEBUG,
+      "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Status='fail'; Reason='%s';",
+      PwVGetReleaseString(),
+      PwVGetLibraryVersion(),
+      PwVGetModuleVersion(),
+      iPamFlags,
+      (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : (iMode == PW_PAM_MODE_MONITOR) ? "monitor" : "",
+      (pcUser == NULL) ? "(null)" : pcUser,
+      pcError
+    );
+    return iReturnValue;
+  }
+
+  /*-
+   ***********************************************************************
+   *
+   * Conditionally log a checkpoint.
    *
    ***********************************************************************
    */
@@ -306,51 +353,14 @@ pam_sm_chauthtok(pam_handle_t *psPamHandle, int iPamFlags, int iArgumentCount, c
     (
       psPamHandle,
       LOG_DEBUG,
-      "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Status='Starting pam_sm_chauthtok';",
+      "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Status='done'; Reason='Checkpoint reached (arguments processed).';",
       PwVGetReleaseString(),
       PwVGetLibraryVersion(),
       PwVGetModuleVersion(),
       iPamFlags,
-      (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : (iMode == PW_PAM_MODE_MONITOR) ? "monitor" : "",
+      (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : "monitor",
       (pcUser == NULL) ? "(null)" : pcUser
     );
-  }
-
-  /*-
-   ***********************************************************************
-   *
-   * If the mode was not set, there's nothing to do, so bail out early.
-   *
-   ***********************************************************************
-   */
-  switch (iMode)
-  {
-  case PW_PAM_MODE_ENFORCE:
-    iDbRequired = (iMaxUse > 0 || iBlacklist == PATHWELL_TRUE) ? PATHWELL_TRUE : PATHWELL_FALSE;
-    break;
-  case PW_PAM_MODE_MONITOR:
-    iDbRequired = PATHWELL_TRUE;
-    break;
-  case PW_PAM_MODE_NOT_SET:
-    return PAM_IGNORE;
-    break;
-  default:
-    pcError = "Invalid mode. That should not happen.";
-    pam_syslog
-    (
-      psPamHandle,
-      LOG_DEBUG,
-      "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Error='%s';",
-      PwVGetReleaseString(),
-      PwVGetLibraryVersion(),
-      PwVGetModuleVersion(),
-      iPamFlags,
-      (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : (iMode == PW_PAM_MODE_MONITOR) ? "monitor" : "",
-      (pcUser == NULL) ? "(null)" : pcUser,
-      pcError
-    );
-    return PAM_SERVICE_ERR;
-    break;
   }
 
   /*-
@@ -366,47 +376,56 @@ pam_sm_chauthtok(pam_handle_t *psPamHandle, int iPamFlags, int iArgumentCount, c
      *******************************************************************
      *
      * Conditionally make sure the database exists and that its schema
-     * checks out. If it does not exist, create and initialize it, but
-     * if that should fail, simply bail out.
+     * checks out. If it does not exist, create and initialize it and
+     * log a warning message; if that should fail, simply bail out.
      *
      *******************************************************************
      */
-    if (iDbRequired == PATHWELL_TRUE)
+    if (PwDDbFileExists(pcDbFile))
     {
-      if (PwDDbFileExists(pcDbFile))
+      psPwDContext = PwDNewContextFromParameters(pcDbFile, SQLITE_OPEN_READWRITE, NULL, 0);
+      if (!PwDContextIsValid(psPwDContext))
       {
-        psPwDContext = PwDNewContextFromParameters(pcDbFile, SQLITE_OPEN_READWRITE, NULL, 0);
-        if (!PwDContextIsValid(psPwDContext))
-        {
-          pcError = PwDGetError(psPwDContext);
-          iReturnValue = PAM_SERVICE_ERR;
-          goto PRELIM_CLEANUP;
-        }
-        iError = PwDVerifySchema(psPwDContext);
-        if (iError != ER_OK)
-        {
-          pcError = PwDGetError(psPwDContext);
-          iReturnValue = PAM_SERVICE_ERR;
-          goto PRELIM_CLEANUP;
-        }
+        pcError = PwDGetError(psPwDContext);
+        iReturnValue = PAM_SERVICE_ERR;
+        goto PRELIM_CLEANUP;
       }
-      else
+      iError = PwDVerifySchema(psPwDContext);
+      if (iError != ER_OK)
       {
-        psPwDContext = PwDNewContextFromParameters(pcDbFile, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL, 0);
-        if (!PwDContextIsValid(psPwDContext))
-        {
-          pcError = PwDGetError(psPwDContext);
-          iReturnValue = PAM_SERVICE_ERR;
-          goto PRELIM_CLEANUP;
-        }
-        iError = PwDInitializeDatabase(psPwDContext);
-        if (iError != ER_OK)
-        {
-          pcError = PwDGetError(psPwDContext);
-          iReturnValue = PAM_SERVICE_ERR;
-          goto PRELIM_CLEANUP;
-        }
+        pcError = PwDGetError(psPwDContext);
+        iReturnValue = PAM_SERVICE_ERR;
+        goto PRELIM_CLEANUP;
       }
+    }
+    else
+    {
+      psPwDContext = PwDNewContextFromParameters(pcDbFile, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL, 0);
+      if (!PwDContextIsValid(psPwDContext))
+      {
+        pcError = PwDGetError(psPwDContext);
+        iReturnValue = PAM_SERVICE_ERR;
+        goto PRELIM_CLEANUP;
+      }
+      iError = PwDInitializeDatabase(psPwDContext);
+      if (iError != ER_OK)
+      {
+        pcError = PwDGetError(psPwDContext);
+        iReturnValue = PAM_SERVICE_ERR;
+        goto PRELIM_CLEANUP;
+      }
+      pam_syslog
+      (
+        psPamHandle,
+        LOG_DEBUG,
+        "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Status='pass'; Reason='PathWell database created.';",
+        PwVGetReleaseString(),
+        PwVGetLibraryVersion(),
+        PwVGetModuleVersion(),
+        iPamFlags,
+        (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : "monitor",
+        (pcUser == NULL) ? "(null)" : pcUser
+      );
     }
 
 PRELIM_CLEANUP:
@@ -423,17 +442,36 @@ PRELIM_CLEANUP:
       (
         psPamHandle,
         LOG_DEBUG,
-        "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Error='%s';",
+        "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Status='fail'; Reason='%s';",
         PwVGetReleaseString(),
         PwVGetLibraryVersion(),
         PwVGetModuleVersion(),
         iPamFlags,
-        (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : (iMode == PW_PAM_MODE_MONITOR) ? "monitor" : "",
+        (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : "monitor",
         (pcUser == NULL) ? "(null)" : pcUser,
         pcError
       );
     }
-    PwDFreeContext(psPwDContext);
+    else
+    {
+      if (iDebug)
+      {
+        pam_syslog
+        (
+          psPamHandle,
+          LOG_DEBUG,
+          "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Status='done'; Reason='Checkpoint reached (preliminary checks completed).';",
+          PwVGetReleaseString(),
+          PwVGetLibraryVersion(),
+          PwVGetModuleVersion(),
+          iPamFlags,
+          (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : "monitor",
+          (pcUser == NULL) ? "(null)" : pcUser
+        );
+      }
+    }
+    PwDFreeContext(&psPwDContext);
+
     return iReturnValue;
   }
 
@@ -447,11 +485,28 @@ PRELIM_CLEANUP:
   if (iPamFlags & PAM_UPDATE_AUTHTOK)
   {
     /*-
+     *********************************************************************
+     *
+     * Conditionally acquire a database context/connection.
+     *
+     *********************************************************************
+     */
+    psPwDContext = PwDNewContextFromParameters(pcDbFile, SQLITE_OPEN_READWRITE, NULL, 0);
+    if (PwDContextIsValid(psPwDContext) != PATHWELL_TRUE)
+    {
+      pcError = PwDGetError(psPwDContext);
+      iReturnValue = PAM_SERVICE_ERR;
+      goto UPDATE_CLEANUP;
+    }
+
+    /*-
      *******************************************************************
      *
      * Acquire the user's name and old password. Note that while the
      * user's name should always be defined, the password may or may
-     * not be defined.
+     * not be defined. One case where this is true is when the user's
+     * password is being set by the superuser. Another case is when
+     * user has no password.
      *
      *******************************************************************
      */
@@ -471,7 +526,7 @@ PRELIM_CLEANUP:
     }
     if (pcOldAuthToken == NULL)
     {
-//FIXME This is OK if the passwd is being set by the superuser (e.g., root runs 'passwd <user>'). Otherwise, it should be treated like an error.
+      /* Empty. */
     }
 
     /*-
@@ -507,7 +562,7 @@ PRELIM_CLEANUP:
       }
       if (pcNewAuthToken == NULL)
       {
-        pcError = "The new password is not defined, so there is nothing that can be done.";
+        pcError = "The new password (1st entry) is not defined, so there is nothing that can be done.";
         iReturnValue = PAM_AUTHTOK_ERR;
         goto UPDATE_CLEANUP;
       }
@@ -520,7 +575,7 @@ PRELIM_CLEANUP:
       }
       if (pcNewAuthToken == NULL)
       {
-        pcError = "The new password is not defined, so there is nothing that can be done.";
+        pcError = "The new password (2nd entry) is not defined, so there is nothing that can be done.";
         iReturnValue = PAM_AUTHTOK_ERR;
         goto UPDATE_CLEANUP;
       }
@@ -529,7 +584,10 @@ PRELIM_CLEANUP:
     /*-
      *******************************************************************
      *
-     * Convert the old/new passwords to topologies and then to IDs.
+     * Convert the old password to a topology and ID. In the case where
+     * the old password is not defined, a context representing an empty
+     * string is created. Note that a valid context is required for the
+     * subsequent password checks that are to be performed.
      *
      *******************************************************************
      */
@@ -557,6 +615,27 @@ PRELIM_CLEANUP:
         goto UPDATE_CLEANUP;
       }
     }
+    else
+    {
+      psOldPwTContext = PwTNewContextFromParameters(iEncoding, iTokenSet, (char *)"", "?z", 0);
+      if (!PwTContextIsValid(psOldPwTContext))
+      {
+        pcError = PwTGetError(psOldPwTContext);
+        iReturnValue = PAM_SERVICE_ERR;
+        goto UPDATE_CLEANUP;
+      }
+      iOldPwTContextFabricated = PATHWELL_TRUE;
+    }
+
+    /*-
+     *******************************************************************
+     *
+     * Convert the new password to a topology and ID. In the case where
+     * the new password is not defined and code execution arrives here,
+     * abort.
+     *
+     *******************************************************************
+     */
     if (pcNewAuthToken != NULL)
     {
       psNewPwTContext = PwTNewContextFromParameters(iEncoding, iTokenSet, (char *)pcNewAuthToken, NULL, NULL);
@@ -581,155 +660,101 @@ PRELIM_CLEANUP:
         goto UPDATE_CLEANUP;
       }
     }
-
-    /*-
-     *******************************************************************
-     *
-     * Conditionally reject passwords that are too short.
-     *
-     *******************************************************************
-     */
-    if (iMode == PW_PAM_MODE_ENFORCE && iMinLen > 0 && psNewPwTContext != NULL)
+    else
     {
-      if (strlen(PwTGetPassword(psNewPwTContext)) < iMinLen)
-      {
-        pcError = "The chosen password does not meet the minimum length requirement.";
-        iReturnValue = PAM_AUTHTOK_ERR;
-        goto UPDATE_CLEANUP;
-      }
+      pcError = "The new password is not defined. That should not happen.";
+      iReturnValue = PAM_SERVICE_ERR;
+      goto UPDATE_CLEANUP;
     }
 
     /*-
      *******************************************************************
      *
-     * Conditionally reject passwords having a blacklisted topology.
+     * Conditionally perform PathWell checks (superuser excluded). 
      *
      *******************************************************************
      */
-    if (iMode == PW_PAM_MODE_ENFORCE && iBlacklist == PATHWELL_TRUE && psNewPwTContext != NULL)
+    if (iMode == PW_PAM_MODE_ENFORCE && getuid() != 0)
     {
-      psPwDContext = PwDNewContextFromParameters(pcDbFile, SQLITE_OPEN_READWRITE, NULL, 0);
-      if (!PwDContextIsValid(psPwDContext))
+      psPwCContext = PwCNewContextFromParameters(psPwDContext, psOldPwTContext, psNewPwTContext, iMaxUse, iMinLen, iMinLev, iBlacklist);
+      if (PwCContextIsValid(psPwCContext) != PATHWELL_TRUE)
       {
-        pcError = PwDGetError(psPwDContext);
+        pcError = PwCGetError(psPwCContext);
         iReturnValue = PAM_SERVICE_ERR;
         goto UPDATE_CLEANUP;
       }
-      iBlacklisted = PwDTopologyIsBlacklisted(psPwDContext, (char *)PwTGetTopology(psNewPwTContext));
-      if (iBlacklisted == PATHWELL_INDETERMINATE)
+      if (PwCAllCheck(psPwCContext) != ER_OK)
       {
-        pcError = PwDGetError(psPwDContext);
+        pcError = PwCGetError(psPwCContext);
         iReturnValue = PAM_SERVICE_ERR;
         goto UPDATE_CLEANUP;
       }
-      if (iBlacklisted == PATHWELL_TRUE)
+      if (PwCGetCheckCode(psPwCContext) != PATHWELL_ALLCHECK_PASS)
       {
-        pcError = "The topology associated with the chosen password has been blacklisted.";
-        iReturnValue = PAM_AUTHTOK_ERR;
-        goto UPDATE_CLEANUP;
-      }
-    }
-
-    /*-
-     *******************************************************************
-     *
-     * Conditionally reject passwords that are too similar.
-     *
-     *******************************************************************
-     */
-    if (iMode == PW_PAM_MODE_ENFORCE && iMinLev > 0 && psOldPwTContext != NULL && psNewPwTContext != NULL)
-    {
-      psPwLContext = PwLNewContextFromParameters(psOldPwTContext, psNewPwTContext);
-      if (!PwLContextIsValid(psPwLContext))
-      {
-        pcError = PwLGetError(psPwLContext);
-        iReturnValue = PAM_SERVICE_ERR;
-        goto UPDATE_CLEANUP;
-      }
-      iLeveled = PwLCheckLevDistance(psPwLContext, iMinLev);
-      if (iLeveled == PATHWELL_INDETERMINATE)
-      {
-        pcError = PwLGetError(psPwLContext);
-        iReturnValue = PAM_SERVICE_ERR;
-        goto UPDATE_CLEANUP;
-      }
-      if (iLeveled != PATHWELL_TRUE)
-      {
-        pcError = "The topology associated with the chosen password does not meet the minimum required Lev distance.";
-        iReturnValue = PAM_AUTHTOK_ERR;
-        goto UPDATE_CLEANUP;
-      }
-    }
-
-    /*-
-     *******************************************************************
-     *
-     * Conditionally reject passwords whose topology use count would
-     * exceed the specified limit. Note that PwDGetUseCount() returns
-     * NULL if the use count is not yet defined in the database, and
-     * under those circumstances, a NULL by itself is not considered
-     * an error. Any true error will be accompanied by a corresponding
-     * error message, which can be retrieved via PwDGetError().
-     *
-     *******************************************************************
-     */
-    if (iMode == PW_PAM_MODE_ENFORCE && iMaxUse > 0 && psNewPwTContext != NULL)
-    {
-      psPwDContext = PwDNewContextFromParameters(pcDbFile, SQLITE_OPEN_READWRITE, NULL, 0);
-      if (!PwDContextIsValid(psPwDContext))
-      {
-        pcError = PwDGetError(psPwDContext);
-        iReturnValue = PAM_SERVICE_ERR;
-        goto UPDATE_CLEANUP;
-      }
-      puiUseCount = PwDGetUseCount(psPwDContext, psNewPwTContext);
-      if (puiUseCount == NULL)
-      {
-        pcError = PwDGetError(psPwDContext);
-        if (pcError != NULL)
+        psPwHContext = PwHNewContextFromParameters
+        (
+          PATHWELL_HINT_MOD_DELETE_ALLOWED_DEFAULT,
+          iHintInfoLevel,
+          iHintPresLevel,
+          PATHWELL_ENV_DEFAULT,
+          0
+        );
+        if (PwHContextIsValid(psPwHContext) != PATHWELL_TRUE)
         {
+          pcError = PwHGetError(psPwHContext);
           iReturnValue = PAM_SERVICE_ERR;
           goto UPDATE_CLEANUP;
         }
-        else
+        if (PwHGenHint(psPwHContext, psPwCContext) != ER_OK)
         {
-          /* The use count has not yet been defined in the database, and that's OK. */
-        }
-      }
-      else
-      {
-        if (*puiUseCount >= iMaxUse)
-        {
-          pcError = "The topology associated with the chosen password would exceed the maximum allowed use count.";
-          iReturnValue = PAM_AUTHTOK_ERR;
+          pcError = PwHGetError(psPwHContext);
+          iReturnValue = PAM_SERVICE_ERR;
           goto UPDATE_CLEANUP;
         }
+        pcHint = PwHGetHint(psPwHContext);
+        iReturnValue = PAM_AUTHTOK_ERR;
+        goto UPDATE_CLEANUP;
       }
     }
 
     /*-
      *******************************************************************
      *
-     * Conditionally increment the topology use count that corresponds
-     * to the chosen password.
+     * Conditionally increment the use count for the topology being
+     * tracked. Normally, the topology of the new password is used.
+     * If the 'delayed' option has been enabled, however, the topology
+     * of the old password (if provided by the caller) is incremented
+     * instead. Note that nothing is incremented if the requisite
+     * context is undefined or fabricated.
      *
      *******************************************************************
      */
-    if (iMode == PW_PAM_MODE_MONITOR && psNewPwTContext != NULL)
+    if (iMode == PW_PAM_MODE_MONITOR)
     {
-      psPwDContext = PwDNewContextFromParameters(pcDbFile, SQLITE_OPEN_READWRITE, NULL, 0);
-      if (!PwDContextIsValid(psPwDContext))
+      PW_T_CONTEXT *psPwTContext = NULL;
+      if (iDelayed)
       {
-        pcError = PwDGetError(psPwDContext);
-        iReturnValue = PAM_SERVICE_ERR;
-        goto UPDATE_CLEANUP;
+        if (psOldPwTContext != NULL && iOldPwTContextFabricated == PATHWELL_FALSE)
+	{
+          psPwTContext = psOldPwTContext;
+	}
       }
-      iError = PwDIncrementUseCount(psPwDContext, psNewPwTContext);
-      if (iError != ER_OK)
+      else
       {
-        pcError = PwDGetError(psPwDContext);
-        iReturnValue = PAM_SERVICE_ERR;
-        goto UPDATE_CLEANUP;
+        if (psNewPwTContext != NULL)
+        {
+          psPwTContext = psNewPwTContext;
+        }
+      }
+      if (psPwTContext != NULL)
+      {
+        iError = PwDIncrementUseCount(psPwDContext, psPwTContext);
+        if (iError != ER_OK)
+        {
+          pcError = PwDGetError(psPwDContext);
+          iReturnValue = PAM_SERVICE_ERR;
+          goto UPDATE_CLEANUP;
+        }
       }
     }
 
@@ -741,21 +766,25 @@ UPDATE_CLEANUP:
      *
      *******************************************************************
      */
-    if (pcError != NULL)
+    if (pcError != NULL || pcHint != NULL)
     {
       pam_syslog
       (
         psPamHandle,
         LOG_DEBUG,
-        "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Error='%s';",
+        "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Status='fail'; Reason='%s';",
         PwVGetReleaseString(),
         PwVGetLibraryVersion(),
         PwVGetModuleVersion(),
         iPamFlags,
-        (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : (iMode == PW_PAM_MODE_MONITOR) ? "monitor" : "",
+        (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : "monitor",
         (pcUser == NULL) ? "(null)" : pcUser,
-        pcError
+        (pcHint != NULL) ? "Password rejected." : pcError
       );
+      if (pcHint != NULL)
+      {
+        pam_error(psPamHandle, "%s: %s", MODULE_NAME, pcHint);
+      }
       if (pcNewAuthToken != NULL)
       {
         pam_set_item(psPamHandle, PAM_AUTHTOK, NULL);
@@ -763,47 +792,46 @@ UPDATE_CLEANUP:
     }
     else
     {
+      pam_syslog
+      (
+        psPamHandle,
+        LOG_DEBUG,
+        "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Status='pass'; Reason='%s';",
+        PwVGetReleaseString(),
+        PwVGetLibraryVersion(),
+        PwVGetModuleVersion(),
+        iPamFlags,
+        (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : "monitor",
+        (pcUser == NULL) ? "(null)" : pcUser,
+        "Password accepted."
+      );
       if (iDebug)
       {
         pam_syslog
         (
           psPamHandle,
           LOG_DEBUG,
-          "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Status='Success'; Topology='%s'; Id='%" PRId64 "';",
+          "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Status='done'; Reason='Checkpoint reached (authentication token update completed).';",
           PwVGetReleaseString(),
           PwVGetLibraryVersion(),
           PwVGetModuleVersion(),
           iPamFlags,
-          (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : (iMode == PW_PAM_MODE_MONITOR) ? "monitor" : "",
-          (pcUser == NULL) ? "(null)" : pcUser,
-          PwTGetTopology(psNewPwTContext),
-          (unsigned long long) PwTGetId(psNewPwTContext)
-        );
-      }
-      else
-      {
-        pam_syslog
-        (
-          psPamHandle,
-          LOG_DEBUG,
-          "Release='%s'; Library='%s'; Module='%s'; PamFlags='0x%08x'; Mode='%s'; User='%s'; Status='Success';",
-          PwVGetReleaseString(),
-          PwVGetLibraryVersion(),
-          PwVGetModuleVersion(),
-          iPamFlags,
-          (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : (iMode == PW_PAM_MODE_MONITOR) ? "monitor" : "",
+          (iMode == PW_PAM_MODE_ENFORCE) ? "enforce" : "monitor",
           (pcUser == NULL) ? "(null)" : pcUser
         );
       }
     }
-    PwDFreeContext(psPwDContext);
-    PwLFreeContext(psPwLContext);
-    PwTFreeContext(psNewPwTContext);
-    PwTFreeContext(psOldPwTContext);
+    PwCFreeContext(&psPwCContext);
+    PwDFreeContext(&psPwDContext);
+    PwHFreeContext(&psPwHContext);
+    PwLFreeContext(&psPwLContext);
+    PwTFreeContext(&psNewPwTContext);
+    PwTFreeContext(&psOldPwTContext);
     if (puiUseCount != NULL)
     {
       free(puiUseCount);
     }
+
     return iReturnValue;
   }
 

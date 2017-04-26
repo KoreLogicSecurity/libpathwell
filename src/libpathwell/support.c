@@ -1,11 +1,11 @@
 /*-
  ***********************************************************************
  *
- * $Id: support.c,v 1.25.2.11 2015/09/30 16:05:53 klm Exp $
+ * $Id: support.c,v 1.40 2017/04/18 22:12:50 klm Exp $
  *
  ***********************************************************************
  *
- * Copyright 2013-2015 The PathWell Project, All Rights Reserved.
+ * Copyright 2013-2017 The PathWell Project, All Rights Reserved.
  *
  * This software, having been partly or wholly developed and/or
  * sponsored by KoreLogic, Inc., is hereby released under the terms
@@ -16,6 +16,46 @@
  ***********************************************************************
  */
 #include "all-includes.h"
+
+/*-
+ ***********************************************************************
+ *
+ * PwSAppendToDynamicString
+ *
+ ***********************************************************************
+ */
+char *
+PwSAppendToDynamicString(char *pcTargetBuf, char *pcStringToAppend)
+{
+  char  *pcTempBuf = NULL;
+  int    iStringToAppendLength = 0;
+  int    iTargetBufLength = 0;
+
+  if (pcStringToAppend == NULL)
+  {
+    return pcTargetBuf;
+  }
+
+  iStringToAppendLength = strlen(pcStringToAppend);
+
+  if (pcTargetBuf != NULL)
+  {
+    iTargetBufLength = strlen(pcTargetBuf);
+  }
+
+  pcTempBuf = (char *)realloc((void *)pcTargetBuf, iTargetBufLength + iStringToAppendLength + 1);
+  if (pcTempBuf == NULL)
+  {
+    return NULL;
+  }
+
+  pcTargetBuf = pcTempBuf;
+
+  strncpy(pcTargetBuf + iTargetBufLength, pcStringToAppend, iStringToAppendLength + 1);
+
+  return pcTargetBuf;
+}
+
 
 /*-
  ***********************************************************************
@@ -530,6 +570,152 @@ PwSDirname(char *pcPath)
 
 
 /*-
+ **********************************************************************
+ *
+ * PwSFormatDynamicString
+ *
+ **********************************************************************
+ */
+char
+*PwSFormatDynamicString(char *pcTargetBuf, const char *pcFormat, ...)
+{
+  char *pcArgument = NULL;
+  char *pcAppendString = NULL;
+  char *pcFinalString = NULL;
+  char *pcWalker = NULL;
+  int iSize = 0;
+  int iArgument = 0;
+  va_list pVaList;
+
+  if (pcFormat == NULL)
+  {
+    return pcTargetBuf;
+  }
+
+  va_start(pVaList, pcFormat);
+  for (pcWalker = (char *)pcFormat, iSize = 0; *pcWalker != '\0'; pcWalker++)
+  {
+    iSize++;
+    if (*pcWalker == '%')
+    {
+      switch(*(++pcWalker))
+      {
+        case 'c':
+          va_arg(pVaList, int);
+          iSize++;
+          break;
+        case 'd':
+          iSize++;
+          iArgument = va_arg(pVaList, int);
+          if (iArgument < 0)
+          {
+            iSize++;
+          }
+          while ((iArgument /=10) != 0)
+          {
+            iSize++;
+          }
+          break;
+        case 's':
+          pcArgument = va_arg(pVaList, char *);
+          if (pcArgument != NULL)
+          {
+            iSize += strlen(pcArgument);
+          }
+          break;
+        default: break;
+      }
+    }
+  }
+  iSize++;
+  va_end(pVaList);
+
+  pcAppendString = (char *)realloc(pcAppendString, (sizeof(char) * iSize));
+  if (pcAppendString == NULL)
+  {
+    return NULL;
+  }
+
+  va_start(pVaList, pcFormat);
+  vsnprintf(pcAppendString, iSize, pcFormat, pVaList);
+  va_end(pVaList);
+
+  pcFinalString = PwSAppendToDynamicString(pcTargetBuf, pcAppendString);
+
+  if (pcAppendString != NULL)
+  {
+    free(pcAppendString);
+  }
+
+  return pcFinalString;
+}
+
+/*-
+ **********************************************************************
+ *
+ * PwSGetRandomCharInClass
+ *
+ * Note: Make sure you have seeded the RNG with PwSSeedRNG before
+ *       calling this function.
+ *
+ **********************************************************************
+ */
+char
+PwSGetRandomCharInClass(char cClass)
+{
+  const char acClass_s[] = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
+  const char acClass_f[] = "\xc0\xc2\xc7\xc8\xc9\xca\xcb\xce\xcf\xd4\xd9\xdb\xe0\xe2\xe7\xe8\xe9\xea\xeb\xee\xef\xf4\xf9\xfb";
+  const char acClass_x[] = "\xc4\xd0\xd1\xd2\xd3\xd5\xd6\xd7\xd8\xda\xdd\xde\xdf\xe1\xe3\xe4\xe5\xe6\xec\xed\xf1\xf6";
+  const char acClass_H[] = "\xc1\xc3\xc5\xc6\xcc\xcd\xdc\xf0\xf2\xf3\xf5\xf8\xfa\xfc\xfd\xfe\xff";
+
+  int iClassSize = 0;
+  int iRandom = 0;
+
+  switch (cClass)
+  {
+    case 'd':
+      iClassSize = 10;
+      iRandom = random() % iClassSize;
+      return (char)(iRandom + '0');
+      break;
+    case 'l':
+      iClassSize = 26;
+      iRandom = random() % iClassSize;
+      return (char)(iRandom + 'a');
+      break;
+    case 'u':
+      iClassSize = 26;
+      iRandom = random() % iClassSize;
+      return (char)(iRandom + 'A');
+      break;
+    case 's':
+      iClassSize = strlen(acClass_s); // 33
+      iRandom = random() % iClassSize;
+      return acClass_s[iRandom];
+      break;
+    case 'f':
+      iClassSize = strlen(acClass_f); // 24
+      iRandom = random() % iClassSize;
+      return acClass_f[iRandom];
+      break;
+    case 'x':
+      iClassSize = strlen(acClass_x); // 22
+      iRandom = random() % iClassSize;
+      return acClass_x[iRandom];
+      break;
+    case 'h':
+      iClassSize = strlen(acClass_H); // 17
+      iRandom = random() % iClassSize;
+      return acClass_H[iRandom];
+      break;
+    default:
+      return '\0';
+  }
+  return '\0';
+}
+
+
+/*-
  ***********************************************************************
  *
  * PwSLevenshteinDistance
@@ -580,4 +766,42 @@ PwSLevenshteinDistance(char *pcStringA, char *pcStringB)
   }
 
   return aaiMatrix[iLengthA][iLengthB];
+}
+
+
+/*-
+ **********************************************************************
+ *
+ * PwSSeedRNG
+ *
+ * Note: If the argument uiSeed has a value of 0, the system time will
+ * be used to derive a seed.
+ *
+ **********************************************************************
+ */
+void
+PwSSeedRNG(unsigned int uiSeed)
+{
+  struct timeval sTimeValue = {};
+  unsigned long ulTime1 = 0;
+  unsigned long ulTime2 = 0;
+
+  if (uiSeed == 0)
+  {
+    if (gettimeofday(&sTimeValue, NULL) == 0)
+    {
+      ulTime1 = (unsigned long)sTimeValue.tv_sec;
+      ulTime2 = (unsigned long)sTimeValue.tv_usec;
+    }
+    else
+    {
+      ulTime1 = (unsigned long)time(NULL);
+      ulTime2 = 0;
+    }
+    srandom((unsigned long)(0xE4CBB72A ^ ((ulTime1 << 16) | (ulTime1 >> 16)) ^ ulTime2 ^ getpid()));
+  }
+  else
+  {
+    srandom(uiSeed);
+  }
 }
